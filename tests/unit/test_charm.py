@@ -9,7 +9,6 @@ from charm import RouterOperatorCharm
 
 
 class TestCharm(unittest.TestCase):
-
     def setUp(self):
         self.harness = testing.Harness(RouterOperatorCharm)
         self.addCleanup(self.harness.cleanup)
