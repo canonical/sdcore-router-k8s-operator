@@ -1,0 +1,25 @@
+name: sdcore-router
+
+display-name: SD-Core router
+summary: A Charmed Operator for SD-Core's router component.
+description: |
+  A Charmed Operator for SD-Core's router.
+
+containers:
+  router:
+    resource: router-image
+
+requires:
+  database:
+    interface: mongodb_client
+  fiveg_nrf:
+    interface: fiveg_nrf
+
+resources:
+  router-image:
+    type: oci-image
+    description: OCI image for SD-Core's router
+    upstream-source: ubuntu:22.04
+
+assumes:
+  - k8s-api
