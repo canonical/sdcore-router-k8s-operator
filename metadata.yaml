@@ -1,7 +1,7 @@
 name: sdcore-router
 
 display-name: SD-Core router
-summary: A Charmed Operator for SD-Core's router component.
+summary: A Charmed Operator for SD-Core's router.
 description: |
   A Charmed Operator for SD-Core's router.
 

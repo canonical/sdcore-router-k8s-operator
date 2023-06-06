@@ -32,7 +32,7 @@ async def build_and_deploy(ops_test):
 
 
 @pytest.mark.abort_on_fail
-async def test_given_charm_is_built_when_deployed_then_status_is_blocked(
+async def test_given_charm_is_built_when_deployed_then_status_is_active(
     ops_test,
     build_and_deploy,
 ):
@@ -41,4 +41,3 @@ async def test_given_charm_is_built_when_deployed_then_status_is_blocked(
         status="active",
         timeout=1000,
     )
-

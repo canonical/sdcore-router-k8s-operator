@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from ops import testing
-from ops.model import WaitingStatus
+from ops.model import ActiveStatus, WaitingStatus
 
 from charm import RouterOperatorCharm
 
@@ -77,3 +77,18 @@ class TestCharm(unittest.TestCase):
         self.assertEqual(
             str(e.value), f"Could not set IP forwarding in workload container: {stderr}"
         )
+
+    @patch("ops.model.Container.exec")
+    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    def test_given_ip_forwarding_set_correctly_when_config_changed_then_status_is_active(
+        self, patch_is_ready, patch_exec
+    ):
+        patch_exec_return_value = Mock()
+        patch_exec_return_value.wait_output.return_value = "net.ipv4.ip_forward = 1", "stderr"
+        patch_exec.return_value = patch_exec_return_value
+        self.harness.set_can_connect(container="router", val=True)
+        patch_is_ready.return_value = True
+
+        self.harness.update_config()
+
+        self.assertEqual(self.harness.model.unit.status, ActiveStatus())
