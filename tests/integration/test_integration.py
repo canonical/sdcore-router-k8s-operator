@@ -3,6 +3,6 @@
 # See LICENSE file for licensing details.
 
 
-class TestUDROperatorCharm:
+class TestRouterOperatorCharm:
     async def test(self):
         pass
