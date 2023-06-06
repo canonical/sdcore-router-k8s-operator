@@ -37,7 +37,9 @@ class RouterOperatorCharm(CharmBase):
         self._container = self.unit.get_container(self._container_name)
         self._kubernetes_multus = KubernetesMultusCharmLib(
             charm=self,
-            containers_requiring_net_admin_capability=[self._container_name],
+            container_name=self._container_name,
+            cap_net_admin=True,
+            privileged=True,
             network_annotations=[
                 NetworkAnnotation(
                     name=CORE_GW_NAD_NAME,
