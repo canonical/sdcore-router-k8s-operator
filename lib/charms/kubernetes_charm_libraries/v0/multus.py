@@ -73,7 +73,7 @@ import json
 import logging
 from dataclasses import asdict, dataclass
 from json.decoder import JSONDecodeError
-from typing import Callable
+from typing import Callable, Union
 
 import httpx
 from lightkube import Client
@@ -168,23 +168,25 @@ class KubernetesClient:
 
         Returns:
             bool: Whether pod is ready.
+
+
+        statefulset.spec.template.metadata.annotations
+        pod.metadata.annotations
+
+        statefulset.spec.template.spec.containers
+        pod.spec.containers
         """
         try:
             pod = self.client.get(Pod, name=pod_name, namespace=self.namespace)
         except ApiError:
             raise KubernetesMultusError(f"Pod {pod_name} not found")
-        if not self._annotations_contains_multus_networks(
-            pod.metadata.annotations, network_annotations  # type: ignore[attr-defined]
-        ):
-            return False
-        if not self._container_security_context_is_set(
-            containers=pod.spec.containers,  # type: ignore[attr-defined]
+        return self._pod_is_patched(
+            pod=pod,  # type: ignore[arg-type]
+            network_annotations=network_annotations,
             container_name=container_name,
             cap_net_admin=cap_net_admin,
             privileged=privileged,
-        ):
-            return False
-        return True
+        )
 
     def network_attachment_definition_is_created(
         self, network_attachment_definition: NetworkAttachmentDefinition
@@ -360,13 +362,41 @@ class KubernetesClient:
             statefulset = self.client.get(res=StatefulSet, name=name, namespace=self.namespace)
         except ApiError:
             raise KubernetesMultusError(f"Could not get statefulset {name}")
+        return self._pod_is_patched(
+            container_name=container_name,
+            cap_net_admin=cap_net_admin,
+            privileged=privileged,
+            network_annotations=network_annotations,
+            pod=statefulset.spec.template,  # type: ignore[attr-defined]
+        )
+
+    def _pod_is_patched(
+        self,
+        container_name: str,
+        cap_net_admin: bool,
+        privileged: bool,
+        network_annotations: list[NetworkAnnotation],
+        pod: Union[PodTemplateSpec, Pod],
+    ) -> bool:
+        """Returns whether a pod is patched with network annotations and security context.
+
+        Args:
+            container_name: Container name
+            cap_net_admin: Whether we expect "container name" to have cap_net_admin
+            privileged: Whether we expect "container name" to be privileged
+            network_annotations: List of network annotations
+            pod: Kubernetes pod object.
+
+        Returns:
+            bool
+        """
         if not self._annotations_contains_multus_networks(
-            annotations=statefulset.spec.template.metadata.annotations,  # type: ignore[attr-defined]  # noqa: E501
+            annotations=pod.metadata.annotations,
             network_annotations=network_annotations,
         ):
             return False
         if not self._container_security_context_is_set(
-            containers=statefulset.spec.template.spec.containers,  # type: ignore[attr-defined]
+            containers=pod.spec.containers,
             container_name=container_name,
             cap_net_admin=cap_net_admin,
             privileged=privileged,
