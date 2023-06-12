@@ -241,7 +241,7 @@ class KubernetesClient:
                 f"{network_attachment_definition.metadata.name}"  # type: ignore[union-attr]
             )
         logger.info(
-            f"NetworkAttachmentDefinition {network_attachment_definition.metadata.name} created"  # type: ignore[union-attr]  # noqa: E501, W505
+            "NetworkAttachmentDefinition %s created", network_attachment_definition.metadata.name  # type: ignore[union-attr]  # noqa: E501, W505
         )
 
     def list_network_attachment_definitions(self) -> list[NetworkAttachmentDefinition]:
@@ -269,7 +269,7 @@ class KubernetesClient:
             )
         except ApiError:
             raise KubernetesMultusError(f"Could not delete NetworkAttachmentDefinition {name}")
-        logger.info(f"NetworkAttachmentDefinition {name} deleted")
+        logger.info("NetworkAttachmentDefinition %s deleted", name)
 
     def patch_statefulset(
         self,
@@ -336,7 +336,7 @@ class KubernetesClient:
             )
         except ApiError:
             raise KubernetesMultusError(f"Could not patch statefulset {name}")
-        logger.info(f"Multus annotation added to {name} statefulset")
+        logger.info("Multus annotation added to %s statefulset", name)
 
     def statefulset_is_patched(
         self,
