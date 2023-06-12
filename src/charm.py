@@ -4,6 +4,7 @@
 
 """Charmed operator for the SD-Core's router."""
 
+import ipaddress
 import json
 import logging
 from typing import Optional
@@ -16,7 +17,7 @@ from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import
 from lightkube.models.meta_v1 import ObjectMeta
 from ops.charm import CharmBase, EventBase
 from ops.main import main
-from ops.model import ActiveStatus, WaitingStatus
+from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,53 @@ class RouterOperatorCharm(CharmBase):
             ],
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
         )
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.router_pebble_ready, self._configure)
+        self.framework.observe(self.on.config_changed, self._configure)
+
+    def _configure(self, event: EventBase) -> None:
+        """Config changed event."""
+        if not self._container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for workload container to be ready")
+            event.defer()
+            return
+        if not self._kubernetes_multus.is_ready():
+            self.unit.status = WaitingStatus("Waiting for Multus to be ready")
+            event.defer()
+            return
+        if invalid_configs := self._get_invalid_configs():
+            self.unit.status = BlockedStatus(
+                f"The following configurations are not valid: {invalid_configs}"
+            )
+            return
+        self._set_ip_forwarding()
+        self._set_ip_tables()
+        self.unit.status = ActiveStatus()
+
+    def _get_invalid_configs(self) -> list[str]:
+        invalid_configs = []
+        if not self._core_gateway_ip_is_valid():
+            invalid_configs.append("core-gateway-ip")
+        if not self._access_gateway_ip_is_valid():
+            invalid_configs.append("access-gateway-ip")
+        if not self._ran_gateway_ip_is_valid():
+            invalid_configs.append("ran-gateway-ip")
+        if not self._ue_subnet_is_valid():
+            invalid_configs.append("ue-subnet")
+        if not self._upf_core_ip_is_valid():
+            invalid_configs.append("upf-core-ip")
+        return invalid_configs
+
+    def _exec_command_in_workload(self, command: str) -> tuple:
+        """Executes command in workload container.
+
+        Args:
+            command: Command to execute
+        """
+        process = self._container.exec(
+            command=command.split(),
+            timeout=30,
+        )
+        return process.wait_output()
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
         return [
@@ -128,30 +175,52 @@ class RouterOperatorCharm(CharmBase):
             ),
         ]
 
-    def _on_config_changed(self, event: EventBase) -> None:
-        """Config changed event."""
-        if not self._container.can_connect():
-            self.unit.status = WaitingStatus("Waiting for workload container to be ready")
-            event.defer()
-            return
-        if not self._kubernetes_multus.is_ready():
-            self.unit.status = WaitingStatus("Waiting for Multus to be ready")
-            event.defer()
-            return
-        self._set_ip_forwarding()
-        self.unit.status = ActiveStatus()
+    def _set_ip_tables(self) -> None:
+        """Configures firewall for IP masquerading.
+
+        Masks requests with the IP address of the firewall's eth0 interface.
+        """
+        self._exec_command_in_workload(
+            command="iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
+        )
+        logger.info("Successfully set ip tables")
 
     def _set_ip_forwarding(self) -> None:
-        """Sets ip forwarding in workload container."""
-        command = "sysctl -w net.ipv4.ip_forward=1"
-        process = self._container.exec(
-            command=command.split(),
-            timeout=30,
-        )
-        stdout, stderr = process.wait_output()
+        """Sets IP forwarding in workload container."""
+        stdout, stderr = self._exec_command_in_workload(command="sysctl -w net.ipv4.ip_forward=1")
         if "net.ipv4.ip_forward = 1" not in stdout:
             raise RuntimeError(f"Could not set IP forwarding in workload container: {stderr}")
         logger.info("Successfully set IP forwarding")
+
+    def _core_gateway_ip_is_valid(self) -> bool:
+        ip = self._get_core_gateway_ip_config()
+        if not ip:
+            return False
+        return ip_is_valid(ip)
+
+    def _access_gateway_ip_is_valid(self) -> bool:
+        ip = self._get_access_gateway_ip_config()
+        if not ip:
+            return False
+        return ip_is_valid(ip)
+
+    def _ran_gateway_ip_is_valid(self) -> bool:
+        ip = self._get_ran_gateway_ip_config()
+        if not ip:
+            return False
+        return ip_is_valid(ip)
+
+    def _ue_subnet_is_valid(self) -> bool:
+        ip = self._get_ue_subnet_config()
+        if not ip:
+            return False
+        return ip_is_valid(ip)
+
+    def _upf_core_ip_is_valid(self) -> bool:
+        ip = self._get_upf_core_ip_config()
+        if not ip:
+            return False
+        return ip_is_valid(ip)
 
     def _get_core_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("core-gateway-ip")
@@ -167,6 +236,22 @@ class RouterOperatorCharm(CharmBase):
 
     def _get_upf_core_ip_config(self) -> Optional[str]:
         return self.model.config.get("upf-core-ip")
+
+
+def ip_is_valid(ip_address: str) -> bool:
+    """Check whether given IP config is valid.
+
+    Args:
+        ip_address (str): IP address
+
+    Returns:
+        bool: True if given IP address is valid
+    """
+    try:
+        ipaddress.ip_network(ip_address, strict=False)
+        return True
+    except ValueError:
+        return False
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -26,4 +26,4 @@ juju deploy sdcore-router --trust
 
 ## Image
 
-- **router**: `ubuntu:22.04`
+- **router**: `opencord/quagga`
