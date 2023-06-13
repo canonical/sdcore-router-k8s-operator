@@ -14,12 +14,16 @@
 
 A Charmed Operator for SD-Core's Router. 
 
+## Pre-requisites
+
+- Multus Kubernetes Addon
+
 ## Usage
 
 ```bash
-juju deploy sdcore-router
+juju deploy sdcore-router --trust
 ```
 
 ## Image
 
-- **router**: `ubuntu:22.04`
+- **router**: `opencord/quagga`
