@@ -72,7 +72,7 @@ class TestCharm(unittest.TestCase):
 
         patch_exec.assert_any_call(
             command=[
-                "iptables",
+                "iptables-legacy",
                 "-t",
                 "nat",
                 "-A",

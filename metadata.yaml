@@ -13,7 +13,7 @@ resources:
   router-image:
     type: oci-image
     description: OCI image for SD-Core's router
-    upstream-source: opencord/quagga
+    upstream-source: ghcr.io/canonical/ubuntu-router:0.1
 
 assumes:
   - k8s-api

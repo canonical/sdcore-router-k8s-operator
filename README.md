@@ -26,4 +26,4 @@ juju deploy sdcore-router --trust
 
 ## Image
 
-- **router**: `opencord/quagga`
+- **router**: `ghcr.io/canonical/ubuntu-router:0.1`
