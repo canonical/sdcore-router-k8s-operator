@@ -181,7 +181,7 @@ class RouterOperatorCharm(CharmBase):
         Masks requests with the IP address of the firewall's eth0 interface.
         """
         self._exec_command_in_workload(
-            command="iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
+            command="iptables-legacy -t nat -A POSTROUTING -o eth0 -j MASQUERADE"
         )
         logger.info("Successfully set ip tables")
 
