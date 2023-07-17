@@ -1,6 +1,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+import json
 import unittest
 from unittest.mock import Mock, patch
 
@@ -142,3 +143,41 @@ class TestCharm(unittest.TestCase):
             self.harness.model.unit.status,
             BlockedStatus("The following configurations are not valid: ['core-gateway-ip']"),
         )
+
+    def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_interface_specified_in_nad(  # noqa: E501
+        self,
+    ):
+        self.harness.disable_hooks()
+        self.harness.update_config(
+            key_values={
+                "access-gateway-ip": "192.168.252.1",
+                "core-gateway-ip": "192.168.250.1",
+                "ran-gateway-ip": "192.168.251.1",
+            }
+        )
+        nads = self.harness.charm._network_attachment_definitions_from_config()
+        for nad in nads:
+            config = json.loads(nad.spec["config"])
+            self.assertNotIn("master", config)
+            self.assertEqual("bridge", config["type"])
+            self.assertIn(config["bridge"], ("access-br", "core-br", "ran-br"))
+
+    def test_given_default_config_with_interfaces_when_network_attachment_definitions_from_config_is_called_then_interfaces_specified_in_nad(  # noqa: E501
+        self,
+    ):
+        self.harness.disable_hooks()
+        self.harness.update_config(
+            key_values={
+                "access-interface": "access-gw",
+                "access-gateway-ip": "192.168.252.1",
+                "core-interface": "core-gw",
+                "core-gateway-ip": "192.168.250.1",
+                "ran-interface": "ran-gw",
+                "ran-gateway-ip": "192.168.251.1",
+            }
+        )
+        nads = self.harness.charm._network_attachment_definitions_from_config()
+        for nad in nads:
+            config = json.loads(nad.spec["config"])
+            self.assertEqual(config["master"], nad.metadata.name)
+            self.assertEqual(config["type"], "macvlan")

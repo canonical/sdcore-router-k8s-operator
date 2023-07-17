@@ -106,72 +106,72 @@ class RouterOperatorCharm(CharmBase):
         return process.wait_output()
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
+        core_nad_config = {
+            "cniVersion": "0.3.1",
+            "ipam": {
+                "type": "static",
+                "routes": [
+                    {
+                        "dst": self._get_ue_subnet_config(),
+                        "gw": self._get_upf_core_ip_config(),
+                    }
+                ],
+                "addresses": [
+                    {
+                        "address": self._get_core_gateway_ip_config(),
+                    }
+                ],
+            },
+            "capabilities": {"mac": True},
+        }
+        if (core_interface := self._get_core_interface_config()) is not None:
+            core_nad_config.update({"type": "macvlan", "master": core_interface})
+        else:
+            core_nad_config.update({"type": "bridge", "bridge": "core-br"})
+        ran_nad_config = {
+            "cniVersion": "0.3.1",
+            "ipam": {
+                "type": "static",
+                "addresses": [
+                    {
+                        "address": self._get_ran_gateway_ip_config(),
+                    }
+                ],
+            },
+            "capabilities": {"mac": True},
+        }
+        if (ran_interface := self._get_ran_interface_config()) is not None:
+            ran_nad_config.update({"type": "macvlan", "master": ran_interface})
+        else:
+            ran_nad_config.update({"type": "bridge", "bridge": "ran-br"})
+        access_nad_config = {
+            "cniVersion": "0.3.1",
+            "ipam": {
+                "type": "static",
+                "addresses": [
+                    {
+                        "address": self._get_access_gateway_ip_config(),
+                    }
+                ],
+            },
+            "capabilities": {"mac": True},
+        }
+        if (access_interface := self._get_access_interface_config()) is not None:
+            access_nad_config.update({"type": "macvlan", "master": access_interface})
+        else:
+            access_nad_config.update({"type": "bridge", "bridge": "access-br"})
         return [
             NetworkAttachmentDefinition(
                 metadata=ObjectMeta(name=CORE_GW_NAD_NAME),
-                spec={
-                    "config": json.dumps(
-                        {
-                            "cniVersion": "0.3.1",
-                            "type": "macvlan",
-                            "ipam": {
-                                "type": "static",
-                                "routes": [
-                                    {
-                                        "dst": self._get_ue_subnet_config(),
-                                        "gw": self._get_upf_core_ip_config(),
-                                    }
-                                ],
-                                "addresses": [
-                                    {
-                                        "address": self._get_core_gateway_ip_config(),
-                                    }
-                                ],
-                            },
-                            "capabilities": {"mac": True},
-                        }
-                    )
-                },
+                spec={"config": json.dumps(core_nad_config)},
             ),
             NetworkAttachmentDefinition(
                 metadata=ObjectMeta(name=RAN_GW_NAD_NAME),
-                spec={
-                    "config": json.dumps(
-                        {
-                            "cniVersion": "0.3.1",
-                            "type": "macvlan",
-                            "ipam": {
-                                "type": "static",
-                                "addresses": [
-                                    {
-                                        "address": self._get_ran_gateway_ip_config(),
-                                    }
-                                ],
-                            },
-                            "capabilities": {"mac": True},
-                        }
-                    )
-                },
+                spec={"config": json.dumps(ran_nad_config)},
             ),
             NetworkAttachmentDefinition(
                 metadata=ObjectMeta(name=ACCESS_GW_NAD_NAME),
-                spec={
-                    "config": json.dumps(
-                        {
-                            "cniVersion": "0.3.1",
-                            "type": "macvlan",
-                            "ipam": {
-                                "type": "static",
-                                "addresses": [
-                                    {
-                                        "address": self._get_access_gateway_ip_config(),
-                                    }
-                                ],
-                            },
-                            "capabilities": {"mac": True},
-                        }
-                    )
-                },
+                spec={"config": json.dumps(access_nad_config)},
             ),
         ]
 
@@ -222,11 +222,20 @@ class RouterOperatorCharm(CharmBase):
             return False
         return ip_is_valid(ip)
 
+    def _get_core_interface_config(self) -> Optional[str]:
+        return self.model.config.get("core-interface")
+
     def _get_core_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("core-gateway-ip")
 
+    def _get_access_interface_config(self) -> Optional[str]:
+        return self.model.config.get("access-interface")
+
     def _get_access_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("access-gateway-ip")
+
+    def _get_ran_interface_config(self) -> Optional[str]:
+        return self.model.config.get("ran-interface")
 
     def _get_ran_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("ran-gateway-ip")
