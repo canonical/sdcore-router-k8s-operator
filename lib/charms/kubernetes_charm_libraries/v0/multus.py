@@ -499,6 +499,7 @@ class KubernetesMultusCharmLib(Object):
     ) -> bool:
         """Returns whether a given NetworkAttachmentDefinitions was created by this charm."""
         labels = network_attachment_definition.metadata.labels
+        logger.error(f"======= Labels: {labels}")
         if not labels:
             return False
         if "app.juju.is/created-by" not in labels:
@@ -521,16 +522,14 @@ class KubernetesMultusCharmLib(Object):
         existing_network_attachment_definitions = (
             self.kubernetes.list_network_attachment_definitions()
         )
-        import pprint
         logger.warning("============================== TO CREATE: ==============================")
-        for i in network_attachment_definitions_to_create:
-            logger.warning(pprint.pprint(i))
+        logger.warning(network_attachment_definitions_to_create)
         logger.warning("========================================================================")
         logger.warning("============================== EXISTING: ==============================")
-        for i in existing_network_attachment_definitions:
-            logger.warning(pprint.pprint(i))
+        logger.warning(existing_network_attachment_definitions)
         logger.warning("=======================================================================")
         for (existing_network_attachment_definition) in existing_network_attachment_definitions:
+            logger.warning(f"======== Checking: {existing_network_attachment_definition}")
             if self._network_attachment_definition_created_by_charm(
                 existing_network_attachment_definition
             ):
@@ -538,10 +537,12 @@ class KubernetesMultusCharmLib(Object):
                     existing_network_attachment_definition
                     not in network_attachment_definitions_to_create
                 ):
+                    logger.warning("======= Something we don't wanna create")
                     self.kubernetes.delete_network_attachment_definition(
                         name=existing_network_attachment_definition.metadata.name
                     )
                 else:
+                    logger.warning("======= Something we wanna create")
                     network_attachment_definitions_to_create.remove(
                         existing_network_attachment_definition
                     )
@@ -550,12 +551,10 @@ class KubernetesMultusCharmLib(Object):
             self.kubernetes.list_network_attachment_definitions()
         )
         logger.warning("============================ AFTER CLEANUP: ============================")
-        for i in existing_network_attachment_definitions:
-            logger.warning(pprint.pprint(i))
+        logger.warning(existing_network_attachment_definitions)
         logger.warning("========================================================================")
         logger.warning("======================= TO CREATE AFTER CLEANUP: =======================")
-        for i in network_attachment_definitions_to_create:
-            logger.warning(pprint.pprint(i))
+        logger.warning(network_attachment_definitions_to_create)
         logger.warning("========================================================================")
 
         for network_attachment_definition_to_create in network_attachment_definitions_to_create:
