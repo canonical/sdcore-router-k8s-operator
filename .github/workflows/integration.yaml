@@ -26,7 +26,7 @@ jobs:
       - name: Run integration tests
         run: tox -vve integration
       - name: Archive juju crashdump
-        if: failure()
+#        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: juju-crashdump
