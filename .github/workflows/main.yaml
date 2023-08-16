@@ -23,7 +23,7 @@ jobs:
     uses: canonical/sdcore-github-workflows/.github/workflows/unit-test.yaml@main
 
   integration-test:
-    uses: ./.github/workflows/integration-test.yaml
+    uses: ./.github/workflows/integration.yaml
     secrets: inherit
 
   publish-charm:
