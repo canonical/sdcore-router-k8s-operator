@@ -549,6 +549,9 @@ class KubernetesMultusCharmLib(Object):
         logger.warning("============================ AFTER CLEANUP: ============================")
         logger.warning(existing_network_attachment_definitions)
         logger.warning("========================================================================")
+        logger.warning("======================= TO CREATE AFTER CLEANUP: =======================")
+        logger.warning(network_attachment_definitions_to_create)
+        logger.warning("========================================================================")
 
         for network_attachment_definition_to_create in network_attachment_definitions_to_create:
             self.kubernetes.create_network_attachment_definition(
