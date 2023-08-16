@@ -521,11 +521,14 @@ class KubernetesMultusCharmLib(Object):
         existing_network_attachment_definitions = (
             self.kubernetes.list_network_attachment_definitions()
         )
+        import pprint
         logger.warning("============================== TO CREATE: ==============================")
-        logger.warning(network_attachment_definitions_to_create)
+        for i in network_attachment_definitions_to_create:
+            logger.warning(pprint.pprint(i))
         logger.warning("========================================================================")
         logger.warning("============================== EXISTING: ==============================")
-        logger.warning(existing_network_attachment_definitions)
+        for i in existing_network_attachment_definitions:
+            logger.warning(pprint.pprint(i))
         logger.warning("=======================================================================")
         for (existing_network_attachment_definition) in existing_network_attachment_definitions:
             if self._network_attachment_definition_created_by_charm(
@@ -547,10 +550,12 @@ class KubernetesMultusCharmLib(Object):
             self.kubernetes.list_network_attachment_definitions()
         )
         logger.warning("============================ AFTER CLEANUP: ============================")
-        logger.warning(existing_network_attachment_definitions)
+        for i in existing_network_attachment_definitions:
+            logger.warning(pprint.pprint(i))
         logger.warning("========================================================================")
         logger.warning("======================= TO CREATE AFTER CLEANUP: =======================")
-        logger.warning(network_attachment_definitions_to_create)
+        for i in network_attachment_definitions_to_create:
+            logger.warning(pprint.pprint(i))
         logger.warning("========================================================================")
 
         for network_attachment_definition_to_create in network_attachment_definitions_to_create:
