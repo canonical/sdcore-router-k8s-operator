@@ -518,9 +518,16 @@ class KubernetesMultusCharmLib(Object):
         2. Goes through the list of NetworkAttachmentDefinitions to create and create them all
         """
         network_attachment_definitions_to_create = self.network_attachment_definitions_func()
-        for (
-            existing_network_attachment_definition
-        ) in self.kubernetes.list_network_attachment_definitions():
+        existing_network_attachment_definitions = (
+            self.kubernetes.list_network_attachment_definitions()
+        )
+        logger.warning("============================== TO CREATE: ==============================")
+        logger.warning(network_attachment_definitions_to_create)
+        logger.warning("========================================================================")
+        logger.warning("============================== EXISTING: ==============================")
+        logger.warning(existing_network_attachment_definitions)
+        logger.warning("=======================================================================")
+        for (existing_network_attachment_definition) in existing_network_attachment_definitions:
             if self._network_attachment_definition_created_by_charm(
                 existing_network_attachment_definition
             ):
@@ -535,6 +542,13 @@ class KubernetesMultusCharmLib(Object):
                     network_attachment_definitions_to_create.remove(
                         existing_network_attachment_definition
                     )
+
+        existing_network_attachment_definitions = (
+            self.kubernetes.list_network_attachment_definitions()
+        )
+        logger.warning("============================ AFTER CLEANUP: ============================")
+        logger.warning(existing_network_attachment_definitions)
+        logger.warning("========================================================================")
 
         for network_attachment_definition_to_create in network_attachment_definitions_to_create:
             self.kubernetes.create_network_attachment_definition(
