@@ -28,6 +28,7 @@ async def build_and_deploy(ops_test):
         resources=resources,
         application_name=APPLICATION_NAME,
         trust=True,
+        series="jammy",
     )
 
 
