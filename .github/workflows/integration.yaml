@@ -9,13 +9,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Parse and enable DNS server
+        id: dns-name
+        run: |
+          dns_server=$(grep -oPm1 'Current DNS Server: \K[^\s]+' <<< "$(resolvectl status)")
+          echo "Using following DNS Server: $dns_server"
+          
+          echo "MY_ADDONS=hostpath-storage dns:$dns_server" >> $GITHUB_OUTPUT
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
         with:
           juju-channel: 2.9/stable
           provider: microk8s
           channel: 1.26-strict/stable
-          microk8s-addons: "hostpath-storage dns:10.130.64.38,10.130.64.39"
+          microk8s-addons: "${{ steps.dns-name.outputs.MY_ADDONS }}"
       - name: Enable Multus addon
         continue-on-error: true
         run: |
