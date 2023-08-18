@@ -26,23 +26,9 @@ jobs:
       - name: Run integration tests
         run: tox -vve integration
       - name: Collect logs
-        if: failure()
         run: |
-          pwd
           sudo snap logs microk8s.daemon-kubelite -n=all
           sudo microk8s.kubectl get mutatingwebhookconfigurations -oyaml --all-namespaces
-      - name: Archive microk8s logs
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: microk8s-logs
-          path: microk8s.logs
-      - name: Archive mutatingwebhookconfigurations
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: mutatingwebhookconfigurations
-          path: mutatingwebhookconfigurations.yaml
       - name: Archive juju crashdump
         if: failure()
         uses: actions/upload-artifact@v3
