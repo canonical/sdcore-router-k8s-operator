@@ -4,7 +4,6 @@ coverage[toml]
 flake8-docstrings
 flake8-builtins
 isort
-juju==3.0.4
 mypy
 pep8-naming
 pyproject-flake8
