@@ -26,6 +26,7 @@ jobs:
       - name: Run integration tests
         run: tox -vve integration
       - name: Collect logs
+        if: always()
         run: |
           sudo snap logs microk8s.daemon-kubelite -n=all
           sudo microk8s.kubectl get mutatingwebhookconfigurations -oyaml --all-namespaces
