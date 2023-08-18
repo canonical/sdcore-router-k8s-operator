@@ -28,9 +28,9 @@ jobs:
       - name: Collect logs
         if: failure()
         run: |
-          sudo snap logs microk8s.daemon-kubelite -n=all > /home/ubuntu/microk8s.logs
-          sudo microk8s.kubectl get mutatingwebhookconfigurations -oyaml --all-namespaces > /home/ubuntu/mutatingwebhookconfigurations.yaml
-          ls -al
+          pwd
+          sudo snap logs microk8s.daemon-kubelite -n=all
+          sudo microk8s.kubectl get mutatingwebhookconfigurations -oyaml --all-namespaces
       - name: Archive microk8s logs
         if: failure()
         uses: actions/upload-artifact@v3
