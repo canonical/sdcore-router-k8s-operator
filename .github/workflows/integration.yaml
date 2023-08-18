@@ -26,15 +26,18 @@ jobs:
       - name: Run integration tests
         run: tox -vve integration
       - name: Collect logs
+        if: failure()
         run: |
           snap logs microk8s.daemon-kubelite -n=all > $HOME/microk8s.logs
           microk8s.kubectl get mutatingwebhookconfigurations -oyaml --all-namespaces > $HOME/mutatingwebhookconfigurations.yaml
       - name: Archive microk8s logs
+        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: microk8s-logs
           path: "$HOME/microk8s.logs"
       - name: Archive mutatingwebhookconfigurations
+        if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: mutatingwebhookconfigurations
