@@ -3,6 +3,10 @@ name: Integration test
 on:
   workflow_call:
 
+env:
+  NO_PROXY: "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc"
+  no_proxy: "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc"
+
 jobs:
   integration-test:
     runs-on: [self-hosted, linux, X64, jammy, xlarge]
@@ -11,12 +15,13 @@ jobs:
         uses: actions/checkout@v3
       - name: Proxy
         run: |
-          sudo export NO_PROXY=$NO_PROXY,.svc
-          sudo export no_proxy=$no_proxy,.svc
           sudo sed -i "s#NO_PROXY.*#NO_PROXY=127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc#g" /etc/environment
           sudo sed -i "s#no_proxy.*#no_proxy=127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc#g" /etc/environment
       - name: Setup operator environment
         uses: charmed-kubernetes/actions-operator@main
+        env:
+          NO_PROXY: "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc"
+          no_proxy: "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc"
         with:
           juju-channel: 3.1/stable
           provider: microk8s
