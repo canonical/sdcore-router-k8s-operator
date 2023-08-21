@@ -3,10 +3,6 @@ name: Integration test
 on:
   workflow_call:
 
-env:
-  NO_PROXY: "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc"
-  no_proxy: "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.canonical.com,.launchpad.net,.internal,.jujucharms.com,.nip.io,.svc"
-
 jobs:
   integration-test:
     runs-on: [self-hosted, linux, X64, jammy, xlarge]
