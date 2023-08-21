@@ -28,6 +28,12 @@ jobs:
       - name: Collect logs
         if: always()
         run: |
+          echo "============================================================================="
+          env
+          echo "============================================================================="
+          sudo cat /etc/environment
+          echo "============================================================================="
+          
           sudo snap logs microk8s.daemon-kubelite -n=all
           sudo microk8s.kubectl get mutatingwebhookconfigurations -oyaml --all-namespaces
       - name: Archive juju crashdump
