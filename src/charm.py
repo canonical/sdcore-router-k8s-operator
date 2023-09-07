@@ -62,6 +62,11 @@ class RouterOperatorCharm(CharmBase):
 
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
+        if invalid_configs := self._get_invalid_configs():
+            self.unit.status = BlockedStatus(
+                f"The following configurations are not valid: {invalid_configs}"
+            )
+            return
         if not self._container.can_connect():
             self.unit.status = WaitingStatus("Waiting for workload container to be ready")
             event.defer()
@@ -69,11 +74,6 @@ class RouterOperatorCharm(CharmBase):
         if not self._kubernetes_multus.is_ready():
             self.unit.status = WaitingStatus("Waiting for Multus to be ready")
             event.defer()
-            return
-        if invalid_configs := self._get_invalid_configs():
-            self.unit.status = BlockedStatus(
-                f"The following configurations are not valid: {invalid_configs}"
-            )
             return
         self._set_ip_forwarding()
         self._set_ip_tables()
@@ -122,6 +122,7 @@ class RouterOperatorCharm(CharmBase):
                     }
                 ],
             },
+            "mtu": self._get_core_interface_mtu_config(),
             "capabilities": {"mac": True},
         }
         if (core_interface := self._get_core_interface_config()) is not None:
@@ -138,6 +139,7 @@ class RouterOperatorCharm(CharmBase):
                     }
                 ],
             },
+            "mtu": self._get_ran_interface_mtu_config(),
             "capabilities": {"mac": True},
         }
         if (ran_interface := self._get_ran_interface_config()) is not None:
@@ -154,6 +156,7 @@ class RouterOperatorCharm(CharmBase):
                     }
                 ],
             },
+            "mtu": self._get_access_interface_mtu_config(),
             "capabilities": {"mac": True},
         }
         if (access_interface := self._get_access_interface_config()) is not None:
@@ -225,17 +228,26 @@ class RouterOperatorCharm(CharmBase):
     def _get_core_interface_config(self) -> Optional[str]:
         return self.model.config.get("core-interface")
 
+    def _get_core_interface_mtu_config(self) -> int:
+        return self.model.config.get("core-interface-mtu")
+
     def _get_core_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("core-gateway-ip")
 
     def _get_access_interface_config(self) -> Optional[str]:
         return self.model.config.get("access-interface")
 
+    def _get_access_interface_mtu_config(self) -> int:
+        return self.model.config.get("access-interface-mtu")
+
     def _get_access_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("access-gateway-ip")
 
     def _get_ran_interface_config(self) -> Optional[str]:
         return self.model.config.get("ran-interface")
+
+    def _get_ran_interface_mtu_config(self) -> int:
+        return self.model.config.get("ran-interface-mtu")
 
     def _get_ran_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("ran-gateway-ip")
