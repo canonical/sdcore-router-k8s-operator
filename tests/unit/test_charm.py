@@ -259,16 +259,16 @@ class TestCharm(unittest.TestCase):
     def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_mtu_specified_in_nad(  # noqa: E501
         self,
     ):
-        CUSTOM_MTU = 9000
+        custom_mtu = 9000
         self.harness.disable_hooks()
         self.harness.update_config(
             key_values={
-                "access-interface-mtu": CUSTOM_MTU,
+                "access-interface-mtu": custom_mtu,
                 "access-gateway-ip": "192.168.252.1",
-                "core-interface-mtu": CUSTOM_MTU,
+                "core-interface-mtu": custom_mtu,
                 "core-gateway-ip": "192.168.250.1",
                 "ran-gateway-ip": "192.168.251.1",
-                "ran-interface-mtu": CUSTOM_MTU,
+                "ran-interface-mtu": custom_mtu,
             }
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
@@ -276,7 +276,7 @@ class TestCharm(unittest.TestCase):
             config = json.loads(nad.spec["config"])
             self.assertNotIn("master", config)
             self.assertEqual("bridge", config["type"])
-            self.assertEqual(CUSTOM_MTU, config["mtu"])
+            self.assertEqual(custom_mtu, config["mtu"])
             self.assertIn(config["bridge"], ("access-br", "core-br", "ran-br"))
 
     def test_given_default_config_with_interfaces_when_network_attachment_definitions_from_config_is_called_then_interfaces_specified_in_nad(  # noqa: E501

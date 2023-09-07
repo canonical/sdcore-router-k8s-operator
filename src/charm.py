@@ -229,7 +229,7 @@ class RouterOperatorCharm(CharmBase):
         return self.model.config.get("core-interface")
 
     def _get_core_interface_mtu_config(self) -> int:
-        return self.model.config.get("core-interface-mtu")
+        return self.model.config.get("core-interface-mtu")  # type: ignore
 
     def _get_core_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("core-gateway-ip")
@@ -238,7 +238,7 @@ class RouterOperatorCharm(CharmBase):
         return self.model.config.get("access-interface")
 
     def _get_access_interface_mtu_config(self) -> int:
-        return self.model.config.get("access-interface-mtu")
+        return self.model.config.get("access-interface-mtu")  # type: ignore
 
     def _get_access_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("access-gateway-ip")
@@ -247,7 +247,7 @@ class RouterOperatorCharm(CharmBase):
         return self.model.config.get("ran-interface")
 
     def _get_ran_interface_mtu_config(self) -> int:
-        return self.model.config.get("ran-interface-mtu")
+        return self.model.config.get("ran-interface-mtu")  # type: ignore
 
     def _get_ran_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("ran-gateway-ip")
