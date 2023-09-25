@@ -11,6 +11,19 @@ from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from charm import RouterOperatorCharm
 
+ACCESS_GATEWAY_IP = "192.168.252.1"
+CORE_GATEWAY_IP = "192.168.250.1"
+RAN_GATEWAY_IP = "192.168.251.1"
+UE_SUBNET = "172.250.0.0"
+INVALID_STRING_IP = "a.b.c.d"
+VALID_MASK_24 = 24
+INVALID_MASK_TOO_LOW = -1
+VALID_MASK_LOWER_EDGE = 0
+VALID_MASK_LOW = 1
+VALID_MASK_HIGH = 31
+VALID_MASK_UPPER_EDGE = 32
+INVALID_MASK_TOO_HIGH = 33
+
 
 class TestCharm(unittest.TestCase):
     @patch("lightkube.core.client.GenericSyncClient")
@@ -133,15 +146,95 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
-    def test_given_invalid_ip_when_config_changed_then_status_is_blocked(self, patch_is_ready):
+    def test_given_invalid_non_cidr_ip_when_config_changed_then_status_is_blocked(
+        self, patch_is_ready
+    ):  # noqa: E501
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
-        self.harness.update_config(key_values={"core-gateway-ip": "a.b.c.d"})
+        self.harness.update_config(
+            key_values={
+                "access-gateway-ip": ACCESS_GATEWAY_IP,
+                "core-gateway-ip": CORE_GATEWAY_IP,
+                "ran-gateway-ip": RAN_GATEWAY_IP,
+                "ue-subnet": UE_SUBNET,
+                "upf-core-ip": "192.168.250.3",
+            }
+        )
 
         self.assertEqual(
             self.harness.model.unit.status,
-            BlockedStatus("The following configurations are not valid: ['core-gateway-ip']"),
+            BlockedStatus(
+                "The following configurations are not valid: "
+                "['core-gateway-ip', 'access-gateway-ip', 'ran-gateway-ip', 'ue-subnet']"
+            ),
+        )
+
+    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    def test_given_ip_in_cidr_format_with_too_big_mask_when_config_changed_then_status_is_blocked(
+        self, patch_is_ready
+    ):
+        patch_is_ready.return_value = True
+        self.harness.set_can_connect(container="router", val=True)
+
+        self.harness.update_config(
+            key_values={
+                "access-gateway-ip": f"{ACCESS_GATEWAY_IP}/{INVALID_MASK_TOO_HIGH}",
+                "core-gateway-ip": f"{CORE_GATEWAY_IP}/{VALID_MASK_UPPER_EDGE}",
+                "ran-gateway-ip": f"{RAN_GATEWAY_IP}/{VALID_MASK_HIGH}",
+                "ue-subnet": f"{UE_SUBNET}/{VALID_MASK_HIGH}",
+            }
+        )
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            BlockedStatus("The following configurations are not valid: ['access-gateway-ip']"),
+        )
+
+    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    def test_given_gateway_ip_in_cidr_format_with_too_small_mask_when_config_changed_then_status_is_blocked(  # noqa: E501
+        self, patch_is_ready
+    ):
+        patch_is_ready.return_value = True
+        self.harness.set_can_connect(container="router", val=True)
+
+        self.harness.update_config(
+            key_values={
+                "access-gateway-ip": f"{ACCESS_GATEWAY_IP}/{VALID_MASK_LOW}",
+                "core-gateway-ip": f"{CORE_GATEWAY_IP}/{INVALID_MASK_TOO_LOW}",
+                "ran-gateway-ip": f"{RAN_GATEWAY_IP}/{VALID_MASK_LOWER_EDGE}",
+                "ue-subnet": f"{UE_SUBNET}/{INVALID_MASK_TOO_LOW}",
+            }
+        )
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            BlockedStatus(
+                "The following configurations are not valid: ['core-gateway-ip', 'ue-subnet']"
+            ),
+        )
+
+    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    def test_given_string_gateway_ip_when_config_changed_then_status_is_blocked(
+        self, patch_is_ready
+    ):
+        patch_is_ready.return_value = True
+        self.harness.set_can_connect(container="router", val=True)
+
+        self.harness.update_config(
+            key_values={
+                "access-gateway-ip": INVALID_STRING_IP,
+                "core-gateway-ip": INVALID_STRING_IP,
+                "ran-gateway-ip": INVALID_STRING_IP,
+            }
+        )
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            BlockedStatus(
+                "The following configurations are not valid: "
+                "['core-gateway-ip', 'access-gateway-ip', 'ran-gateway-ip']"
+            ),
         )
 
     def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_interface_specified_in_nad(  # noqa: E501
@@ -150,9 +243,9 @@ class TestCharm(unittest.TestCase):
         self.harness.disable_hooks()
         self.harness.update_config(
             key_values={
-                "access-gateway-ip": "192.168.252.1",
-                "core-gateway-ip": "192.168.250.1",
-                "ran-gateway-ip": "192.168.251.1",
+                "access-gateway-ip": f"{ACCESS_GATEWAY_IP}/{VALID_MASK_24}",
+                "core-gateway-ip": f"{CORE_GATEWAY_IP}/{VALID_MASK_24}",
+                "ran-gateway-ip": f"{RAN_GATEWAY_IP}/{VALID_MASK_24}",
             }
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
@@ -169,11 +262,11 @@ class TestCharm(unittest.TestCase):
         self.harness.update_config(
             key_values={
                 "access-interface": "access-gw",
-                "access-gateway-ip": "192.168.252.1",
+                "access-gateway-ip": f"{ACCESS_GATEWAY_IP}/{VALID_MASK_24}",
                 "core-interface": "core-gw",
-                "core-gateway-ip": "192.168.250.1",
+                "core-gateway-ip": f"{CORE_GATEWAY_IP}/{VALID_MASK_24}",
                 "ran-interface": "ran-gw",
-                "ran-gateway-ip": "192.168.251.1",
+                "ran-gateway-ip": f"{RAN_GATEWAY_IP}/{VALID_MASK_24}",
             }
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()

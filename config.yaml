@@ -5,25 +5,25 @@ options:
   core-gateway-ip:
     type: string
     default: 192.168.250.1/24
-    description: Gateway IP address to the Core Network.
+    description: Gateway IP address in CIDR format to the Core Network.
   access-interface:
     type: string
     description: Host interface to use for the Access Network.
   access-gateway-ip:
     type: string
     default: 192.168.252.1/24
-    description: Gateway IP address to the Access Network.
+    description: Gateway IP address in CIDR format to the Access Network.
   ran-interface:
     type: string
     description: Host interface to use for the RAN Network.
   ran-gateway-ip:
     type: string
     default: 192.168.251.1/24
-    description: Gateway IP address to the RAN Network.
+    description: Gateway IP address in CIDR format to the RAN Network.
   ue-subnet:
     type: string
     default: 172.250.0.0/16
-    description: Subnet used by User Equipments
+    description: Subnet used by User Equipments in CIDR format
   upf-core-ip:
     type: string
     default: 192.168.250.3

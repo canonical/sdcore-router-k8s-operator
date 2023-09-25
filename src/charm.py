@@ -196,25 +196,25 @@ class RouterOperatorCharm(CharmBase):
         ip = self._get_core_gateway_ip_config()
         if not ip:
             return False
-        return ip_is_valid(ip)
+        return ip_in_cidr_format_is_valid(ip)
 
     def _access_gateway_ip_is_valid(self) -> bool:
         ip = self._get_access_gateway_ip_config()
         if not ip:
             return False
-        return ip_is_valid(ip)
+        return ip_in_cidr_format_is_valid(ip)
 
     def _ran_gateway_ip_is_valid(self) -> bool:
         ip = self._get_ran_gateway_ip_config()
         if not ip:
             return False
-        return ip_is_valid(ip)
+        return ip_in_cidr_format_is_valid(ip)
 
     def _ue_subnet_is_valid(self) -> bool:
         ip = self._get_ue_subnet_config()
         if not ip:
             return False
-        return ip_is_valid(ip)
+        return ip_in_cidr_format_is_valid(ip)
 
     def _upf_core_ip_is_valid(self) -> bool:
         ip = self._get_upf_core_ip_config()
@@ -261,6 +261,21 @@ def ip_is_valid(ip_address: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def ip_in_cidr_format_is_valid(ip_address: str) -> bool:
+    """Check whether given IP config is in CIDR format and valid.
+
+    Args:
+        ip_address (str): IP address in CIDR format
+
+    Returns:
+        bool: True if given IP address is valid
+    """
+    if "/" not in ip_address:
+        logger.warning(f"The IP address: {ip_address} is expected in CIDR format.")
+        return False
+    return ip_is_valid(ip_address)
 
 
 if __name__ == "__main__":  # pragma: no cover
