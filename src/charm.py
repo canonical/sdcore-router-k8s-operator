@@ -273,7 +273,7 @@ def ip_in_cidr_format_is_valid(ip_address: str) -> bool:
         bool: True if given IP address is valid
     """
     if "/" not in ip_address:
-        logger.warning(f"The IP address: {ip_address} is expected in CIDR format.")
+        logger.error("The IP address: %s is expected in CIDR format.", ip_address)
         return False
     return ip_is_valid(ip_address)
 
