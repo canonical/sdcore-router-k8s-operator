@@ -2,10 +2,11 @@ options:
   core-interface:
     type: string
     description: Host interface to use for the Core Network.
-  core-interface-mtu:
+  core-interface-mtu-size:
     type: int
-    default: 1500
-    description: MTU to use for the Core Network interface
+    description: |
+      MTU for the core interface (1200 <= MTU <= 65535) in bytes.
+      If not specified, Multus will use its default value (typically 1500).
   core-gateway-ip:
     type: string
     default: 192.168.250.1/24
@@ -13,10 +14,11 @@ options:
   access-interface:
     type: string
     description: Host interface to use for the Access Network.
-  access-interface-mtu:
+  access-interface-mtu-size:
     type: int
-    default: 1500
-    description: MTU to use for the Access Network interface
+    description: |
+      MTU for the core interface (1200 <= MTU <= 65535) in bytes.
+      If not specified, Multus will use its default value (typically 1500).
   access-gateway-ip:
     type: string
     default: 192.168.252.1/24
@@ -24,10 +26,11 @@ options:
   ran-interface:
     type: string
     description: Host interface to use for the RAN Network.
-  ran-interface-mtu:
+  ran-interface-mtu-size:
     type: int
-    default: 1500
-    description: MTU to use for the RAN Network interface
+    description: |
+      MTU for the core interface (1200 <= MTU <= 65535) in bytes.
+      If not specified, Multus will use its default value (typically 1500).
   ran-gateway-ip:
     type: string
     default: 192.168.251.1/24

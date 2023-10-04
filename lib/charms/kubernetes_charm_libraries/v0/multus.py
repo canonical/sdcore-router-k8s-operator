@@ -3,10 +3,12 @@
 
 """Charm Library used to leverage the Multus Kubernetes CNI in charms.
 
-- On config-changed, it will:
+- On a BoundEvent (e.g. self.on.nad_config_changed which is originated from NadConfigChangedEvent),
+ it will:
   - Configure the requested network attachment definitions
   - Patch the statefulset with the necessary annotations for the container to have interfaces
     that use those new network attachments.
+  - If an existing NAD config changed, it triggers pod restart to make the new config effective
 - On charm removal, it will:
   - Delete the created network attachment definitions
 
@@ -20,7 +22,17 @@ from charms.kubernetes_charm_libraries.v0.multus import (
     NetworkAnnotation
 )
 
+class NadConfigChangedEvent(EventBase):
+
+
+class KubernetesMultusCharmEvents(CharmEvents):
+
+    nad_config_changed = EventSource(NadConfigChangedEvent)
+
+
 class YourCharm(CharmBase):
+
+    on = KubernetesMultusCharmEvents()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -36,6 +48,7 @@ class YourCharm(CharmBase):
                 )
             ],
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
+            refresh_event=self.on.nad_config_changed,
         )
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
@@ -66,6 +79,14 @@ class YourCharm(CharmBase):
                 },
             ),
         ]
+
+    def _on_config_changed(self, event: EventBase):
+        if not self.unit.is_leader():
+            return
+        if self._get_invalid_configs():
+            return
+        # Fire the NadConfigChangedEvent if the configs are valid.
+        self.on.nad_config_changed.emit()
 ```
 """
 
@@ -91,8 +112,8 @@ from lightkube.models.meta_v1 import ObjectMeta
 from lightkube.resources.apps_v1 import StatefulSet
 from lightkube.resources.core_v1 import Pod
 from lightkube.types import PatchType
-from ops.charm import CharmBase, EventBase, RemoveEvent
-from ops.framework import Object
+from ops.charm import CharmBase, RemoveEvent
+from ops.framework import BoundEvent, Object
 
 # The unique Charmhub library identifier, never change it
 LIBID = "75283550e3474e7b8b5b7724d345e3c2"
@@ -102,7 +123,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 4
+LIBPATCH = 8
 
 
 logger = logging.getLogger(__name__)
@@ -148,6 +169,15 @@ class KubernetesClient:
         self.client = Client()
         self.namespace = namespace
 
+    def delete_pod(self, pod_name: str) -> None:
+        """Deleting given pod.
+
+        Args:
+            pod_name (str): Pod name
+
+        """
+        self.client.delete(Pod, pod_name, namespace=self.namespace)
+
     def pod_is_ready(
         self,
         pod_name: str,
@@ -178,8 +208,12 @@ class KubernetesClient:
         """
         try:
             pod = self.client.get(Pod, name=pod_name, namespace=self.namespace)
-        except ApiError:
-            raise KubernetesMultusError(f"Pod {pod_name} not found")
+        except ApiError as e:
+            if e.status.reason == "Unauthorized":
+                logger.debug("kube-apiserver not ready yet")
+            else:
+                raise KubernetesMultusError(f"Pod {pod_name} not found")
+            return False
         return self._pod_is_patched(
             pod=pod,  # type: ignore[arg-type]
             network_annotations=network_annotations,
@@ -207,7 +241,11 @@ class KubernetesClient:
             )
             return existing_nad == network_attachment_definition
         except ApiError as e:
-            if e.status.reason != "NotFound":
+            if e.status.reason == "NotFound":
+                logger.debug("NetworkAttachmentDefinition not found")
+            elif e.status.reason == "Unauthorized":
+                logger.debug("kube-apiserver not ready yet")
+            else:
                 raise KubernetesMultusError(
                     f"Unexpected outcome when retrieving NetworkAttachmentDefinition "
                     f"{network_attachment_definition.metadata.name}"
@@ -360,8 +398,12 @@ class KubernetesClient:
         """
         try:
             statefulset = self.client.get(res=StatefulSet, name=name, namespace=self.namespace)
-        except ApiError:
-            raise KubernetesMultusError(f"Could not get statefulset {name}")
+        except ApiError as e:
+            if e.status.reason == "Unauthorized":
+                logger.debug("kube-apiserver not ready yet")
+            else:
+                raise KubernetesMultusError(f"Could not get statefulset {name}")
+            return False
         return self._pod_is_patched(
             container_name=container_name,
             cap_net_admin=cap_net_admin,
@@ -454,6 +496,7 @@ class KubernetesMultusCharmLib(Object):
         network_attachment_definitions_func: Callable[[], list[NetworkAttachmentDefinition]],
         network_annotations: list[NetworkAnnotation],
         container_name: str,
+        refresh_event: BoundEvent,
         cap_net_admin: bool = False,
         privileged: bool = False,
     ):
@@ -467,6 +510,8 @@ class KubernetesMultusCharmLib(Object):
             container_name: Container name
             cap_net_admin: Container requires NET_ADMIN capability
             privileged: Container requires privileged security context
+            refresh_event: A BoundEvent which will be observed
+                to configure_multus (e.g. NadConfigChangedEvent).
         """
         super().__init__(charm, "kubernetes-multus")
         self.kubernetes = KubernetesClient(namespace=self.model.name)
@@ -475,10 +520,11 @@ class KubernetesMultusCharmLib(Object):
         self.container_name = container_name
         self.cap_net_admin = cap_net_admin
         self.privileged = privileged
-        self.framework.observe(charm.on.config_changed, self._configure_multus)
+        # Apply custom events
+        self.framework.observe(refresh_event, self._configure_multus)
         self.framework.observe(charm.on.remove, self._on_remove)
 
-    def _configure_multus(self, event: EventBase) -> None:
+    def _configure_multus(self, event: BoundEvent) -> None:
         """Creates network attachment definitions and patches statefulset.
 
         Args:
@@ -516,8 +562,11 @@ class KubernetesMultusCharmLib(Object):
             list of NetworkAttachmentDefinitions to create
           - Else, delete it
         2. Goes through the list of NetworkAttachmentDefinitions to create and create them all
+        3. Detects the NAD config changes and triggers pod restart
+           if any there is any modification in existing NADs
         """
         network_attachment_definitions_to_create = self.network_attachment_definitions_func()
+        nad_config_changed = False
         for (
             existing_network_attachment_definition
         ) in self.kubernetes.list_network_attachment_definitions():
@@ -531,15 +580,20 @@ class KubernetesMultusCharmLib(Object):
                     self.kubernetes.delete_network_attachment_definition(
                         name=existing_network_attachment_definition.metadata.name
                     )
+                    nad_config_changed = True
                 else:
                     network_attachment_definitions_to_create.remove(
                         existing_network_attachment_definition
                     )
-
         for network_attachment_definition_to_create in network_attachment_definitions_to_create:
             self.kubernetes.create_network_attachment_definition(
                 network_attachment_definition=network_attachment_definition_to_create
             )
+        if nad_config_changed:
+            # We want to trigger the pod restart once if there is a change in NADs
+            # after all the NADs are configured.
+            logger.warning("Restarting pod to make the new NAD configs effective.")
+            self.delete_pod()
 
     def _network_attachment_definitions_are_created(self) -> bool:
         """Returns whether all network attachment definitions are created."""
@@ -607,3 +661,7 @@ class KubernetesMultusCharmLib(Object):
                 self.kubernetes.delete_network_attachment_definition(
                     name=network_attachment_definition.metadata.name  # type: ignore[union-attr]
                 )
+
+    def delete_pod(self) -> None:
+        """Delete the pod."""
+        self.kubernetes.delete_pod(self._pod)
