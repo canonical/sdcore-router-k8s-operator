@@ -30,7 +30,6 @@ ACCESS_INTERFACE_NAME = "access"
 RAN_INTERFACE_NAME = "ran"
 ACCESS_INTERFACE_BRIDGE_NAME = "access-br"
 CORE_INTERFACE_BRIDGE_NAME = "core-br"
-ACESS_INTERFACE_BRIDGE_NAME = "access-br"
 RAN_INTERFACE_BRIDGE_NAME = "ran-br"
 CNI_VERSION = "0.3.1"
 
@@ -154,7 +153,7 @@ class RouterOperatorCharm(CharmBase):
         if (access_interface := self._get_access_interface_config()) is not None:
             access_nad_config.update({"type": "macvlan", "master": access_interface})
         else:
-            access_nad_config.update({"type": "bridge", "bridge": ACESS_INTERFACE_BRIDGE_NAME})
+            access_nad_config.update({"type": "bridge", "bridge": ACCESS_INTERFACE_BRIDGE_NAME})
         return [
             NetworkAttachmentDefinition(
                 metadata=ObjectMeta(name=CORE_GW_NAD_NAME),

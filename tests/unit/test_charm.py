@@ -60,7 +60,7 @@ class TestCharm(unittest.TestCase):
             WaitingStatus("Waiting for workload container to be ready"),
         )
 
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_not_ready_when_config_changed_then_status_is_waiting(
         self, patch_is_ready
     ):
@@ -75,7 +75,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch("ops.model.Container.exec")
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_is_ready_when_config_changed_then_ip_forwarding_is_set(
         self, patch_is_ready, patch_exec
     ):
@@ -90,7 +90,7 @@ class TestCharm(unittest.TestCase):
         patch_exec.assert_any_call(command=["sysctl", "-w", "net.ipv4.ip_forward=1"], timeout=30)
 
     @patch("ops.model.Container.exec")
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_is_ready_when_config_changed_then_iptables_rule_is_set(
         self, patch_is_ready, patch_exec
     ):
@@ -118,7 +118,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch("ops.model.Container.exec")
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_error_when_setting_ip_forwarding_when_config_changed_then_runtime_error_is_raised(  # noqa: E501
         self, patch_is_ready, patch_exec
     ):
@@ -137,7 +137,7 @@ class TestCharm(unittest.TestCase):
         )
 
     @patch("ops.model.Container.exec")
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_ip_forwarding_set_correctly_when_config_changed_then_status_is_active(
         self, patch_is_ready, patch_exec
     ):
@@ -151,7 +151,7 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual(self.harness.model.unit.status, ActiveStatus())
 
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_empty_ip_when_config_changed_then_status_is_blocked(self, patch_is_ready):
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
@@ -163,10 +163,10 @@ class TestCharm(unittest.TestCase):
             BlockedStatus("The following configurations are not valid: ['core-gateway-ip']"),
         )
 
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_invalid_non_cidr_ip_when_config_changed_then_status_is_blocked(
         self, patch_is_ready
-    ):  # noqa: E501
+    ):
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
@@ -188,7 +188,7 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_ip_in_cidr_format_with_too_big_mask_when_config_changed_then_status_is_blocked(
         self, patch_is_ready
     ):
@@ -209,7 +209,7 @@ class TestCharm(unittest.TestCase):
             BlockedStatus("The following configurations are not valid: ['access-gateway-ip']"),
         )
 
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_gateway_ip_in_cidr_format_with_too_small_mask_when_config_changed_then_status_is_blocked(  # noqa: E501
         self, patch_is_ready
     ):
@@ -232,7 +232,7 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("charms.kubernetes_charm_libraries.v0.multus.KubernetesMultusCharmLib.is_ready")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_string_gateway_ip_when_config_changed_then_status_is_blocked(
         self, patch_is_ready
     ):
@@ -293,14 +293,14 @@ class TestCharm(unittest.TestCase):
             self.assertEqual(config["master"], nad.metadata.name)
             self.assertEqual(config["type"], "macvlan")
 
-    def test_given_default_config__when_network_attachment_definitions_from_config_is_called_then_no_mtu_specified_in_nad(  # noqa: E501
+    def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_mtu_specified_in_nad(  # noqa: E501
         self,
     ):
         self.harness.update_config(
             key_values={
-                "access-gateway-ip": "192.168.252.1",
-                "core-gateway-ip": "192.168.250.1",
-                "ran-gateway-ip": "192.168.251.1",
+                "access-gateway-ip": ACCESS_GATEWAY_IP,
+                "core-gateway-ip": CORE_GATEWAY_IP,
+                "ran-gateway-ip": RAN_GATEWAY_IP,
             }
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
