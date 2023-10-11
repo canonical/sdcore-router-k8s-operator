@@ -7,7 +7,7 @@
 import ipaddress
 import json
 import logging
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
     KubernetesMultusCharmLib,
@@ -15,7 +15,8 @@ from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import
     NetworkAttachmentDefinition,
 )
 from lightkube.models.meta_v1 import ObjectMeta
-from ops.charm import CharmBase, EventBase
+from ops import EventSource
+from ops.charm import CharmBase, CharmEvents, EventBase
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
@@ -27,10 +28,26 @@ RAN_GW_NAD_NAME = "ran-gw"
 CORE_INTERFACE_NAME = "core"
 ACCESS_INTERFACE_NAME = "access"
 RAN_INTERFACE_NAME = "ran"
+ACCESS_INTERFACE_BRIDGE_NAME = "access-br"
+CORE_INTERFACE_BRIDGE_NAME = "core-br"
+RAN_INTERFACE_BRIDGE_NAME = "ran-br"
+CNI_VERSION = "0.3.1"
+
+
+class NadConfigChangedEvent(EventBase):
+    """Event triggered when an existing network attachment definition is changed."""
+
+
+class KubernetesMultusCharmEvents(CharmEvents):
+    """Kubernetes Multus charm events."""
+
+    nad_config_changed = EventSource(NadConfigChangedEvent)
 
 
 class RouterOperatorCharm(CharmBase):
     """Charm the service."""
+
+    on = KubernetesMultusCharmEvents()
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -56,12 +73,19 @@ class RouterOperatorCharm(CharmBase):
                 ),
             ],
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
+            refresh_event=self.on.nad_config_changed,
         )
         self.framework.observe(self.on.router_pebble_ready, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
 
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
+        if invalid_configs := self._get_invalid_configs():
+            self.unit.status = BlockedStatus(
+                f"The following configurations are not valid: {invalid_configs}"
+            )
+            return
+        self.on.nad_config_changed.emit()
         if not self._container.can_connect():
             self.unit.status = WaitingStatus("Waiting for workload container to be ready")
             event.defer()
@@ -69,11 +93,6 @@ class RouterOperatorCharm(CharmBase):
         if not self._kubernetes_multus.is_ready():
             self.unit.status = WaitingStatus("Waiting for Multus to be ready")
             event.defer()
-            return
-        if invalid_configs := self._get_invalid_configs():
-            self.unit.status = BlockedStatus(
-                f"The following configurations are not valid: {invalid_configs}"
-            )
             return
         self._set_ip_forwarding()
         self._set_ip_tables()
@@ -91,6 +110,12 @@ class RouterOperatorCharm(CharmBase):
             invalid_configs.append("ue-subnet")
         if not self._upf_core_ip_is_valid():
             invalid_configs.append("upf-core-ip")
+        if not self._access_interface_mtu_size_is_valid():
+            invalid_configs.append("access-interface-mtu-size")
+        if not self._core_interface_mtu_size_is_valid():
+            invalid_configs.append("core-interface-mtu-size")
+        if not self._ran_interface_mtu_size_is_valid():
+            invalid_configs.append("ran-interface-mtu-size")
         return invalid_configs
 
     def _exec_command_in_workload(self, command: str) -> tuple:
@@ -106,8 +131,52 @@ class RouterOperatorCharm(CharmBase):
         return process.wait_output()
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
-        core_nad_config = {
-            "cniVersion": "0.3.1",
+        """Returns list of Multus NetworkAttachmentDefinitions to be created based on config.
+
+        Returns:
+            network_attachment_definitions: list[NetworkAttachmentDefinition]
+
+        """
+        core_nad_config = self._get_core_nad_config()
+        if (core_interface := self._get_core_interface_config()) is not None:
+            core_nad_config.update({"type": "macvlan", "master": core_interface})
+        else:
+            core_nad_config.update({"type": "bridge", "bridge": CORE_INTERFACE_BRIDGE_NAME})
+
+        ran_nad_config = self._get_ran_nad_config()
+        if (ran_interface := self._get_ran_interface_config()) is not None:
+            ran_nad_config.update({"type": "macvlan", "master": ran_interface})
+        else:
+            ran_nad_config.update({"type": "bridge", "bridge": RAN_INTERFACE_BRIDGE_NAME})
+
+        access_nad_config = self._get_access_nad_config()
+        if (access_interface := self._get_access_interface_config()) is not None:
+            access_nad_config.update({"type": "macvlan", "master": access_interface})
+        else:
+            access_nad_config.update({"type": "bridge", "bridge": ACCESS_INTERFACE_BRIDGE_NAME})
+        return [
+            NetworkAttachmentDefinition(
+                metadata=ObjectMeta(name=CORE_GW_NAD_NAME),
+                spec={"config": json.dumps(core_nad_config)},
+            ),
+            NetworkAttachmentDefinition(
+                metadata=ObjectMeta(name=RAN_GW_NAD_NAME),
+                spec={"config": json.dumps(ran_nad_config)},
+            ),
+            NetworkAttachmentDefinition(
+                metadata=ObjectMeta(name=ACCESS_GW_NAD_NAME),
+                spec={"config": json.dumps(access_nad_config)},
+            ),
+        ]
+
+    def _get_core_nad_config(self) -> Dict[Any, Any]:
+        """Get core interface NAD config.
+
+        Returns:
+            config (dict): Core interface NAD config
+        """
+        config = {
+            "cniVersion": CNI_VERSION,
             "ipam": {
                 "type": "static",
                 "routes": [
@@ -124,12 +193,18 @@ class RouterOperatorCharm(CharmBase):
             },
             "capabilities": {"mac": True},
         }
-        if (core_interface := self._get_core_interface_config()) is not None:
-            core_nad_config.update({"type": "macvlan", "master": core_interface})
-        else:
-            core_nad_config.update({"type": "bridge", "bridge": "core-br"})
-        ran_nad_config = {
-            "cniVersion": "0.3.1",
+        if core_mtu := self._get_core_interface_mtu_config():
+            config.update({"mtu": core_mtu})
+        return config
+
+    def _get_ran_nad_config(self) -> Dict[Any, Any]:
+        """Get RAN interface NAD config.
+
+        Returns:
+            config (dict): RAN interface NAD config
+        """
+        config = {
+            "cniVersion": CNI_VERSION,
             "ipam": {
                 "type": "static",
                 "addresses": [
@@ -140,12 +215,18 @@ class RouterOperatorCharm(CharmBase):
             },
             "capabilities": {"mac": True},
         }
-        if (ran_interface := self._get_ran_interface_config()) is not None:
-            ran_nad_config.update({"type": "macvlan", "master": ran_interface})
-        else:
-            ran_nad_config.update({"type": "bridge", "bridge": "ran-br"})
-        access_nad_config = {
-            "cniVersion": "0.3.1",
+        if ran_mtu := self._get_ran_interface_mtu_config():
+            config.update({"mtu": ran_mtu})
+        return config
+
+    def _get_access_nad_config(self) -> Dict[Any, Any]:
+        """Get access interface NAD config.
+
+        Returns:
+            config (dict): Access interface NAD config
+        """
+        config = {
+            "cniVersion": CNI_VERSION,
             "ipam": {
                 "type": "static",
                 "addresses": [
@@ -156,24 +237,9 @@ class RouterOperatorCharm(CharmBase):
             },
             "capabilities": {"mac": True},
         }
-        if (access_interface := self._get_access_interface_config()) is not None:
-            access_nad_config.update({"type": "macvlan", "master": access_interface})
-        else:
-            access_nad_config.update({"type": "bridge", "bridge": "access-br"})
-        return [
-            NetworkAttachmentDefinition(
-                metadata=ObjectMeta(name=CORE_GW_NAD_NAME),
-                spec={"config": json.dumps(core_nad_config)},
-            ),
-            NetworkAttachmentDefinition(
-                metadata=ObjectMeta(name=RAN_GW_NAD_NAME),
-                spec={"config": json.dumps(ran_nad_config)},
-            ),
-            NetworkAttachmentDefinition(
-                metadata=ObjectMeta(name=ACCESS_GW_NAD_NAME),
-                spec={"config": json.dumps(access_nad_config)},
-            ),
-        ]
+        if access_mtu := self._get_access_interface_mtu_config():
+            config.update({"mtu": access_mtu})
+        return config
 
     def _set_ip_tables(self) -> None:
         """Configures firewall for IP masquerading.
@@ -222,8 +288,56 @@ class RouterOperatorCharm(CharmBase):
             return False
         return ip_is_valid(ip)
 
+    def _core_interface_mtu_size_is_valid(self) -> bool:
+        """Checks whether the core interface MTU size is valid.
+
+        Returns:
+            bool: Whether core interface MTU size is valid
+        """
+        if (core_mtu := self._get_core_interface_mtu_config()) is None:
+            return True
+        try:
+            return 1200 <= int(core_mtu) <= 65535
+        except ValueError:
+            return False
+
+    def _access_interface_mtu_size_is_valid(self) -> bool:
+        """Checks whether the access interface MTU size is valid.
+
+        Returns:
+            bool: Whether access interface MTU size is valid
+        """
+        if (access_mtu := self._get_access_interface_mtu_config()) is None:
+            return True
+        try:
+            return 1200 <= int(access_mtu) <= 65535
+        except ValueError:
+            return False
+
+    def _ran_interface_mtu_size_is_valid(self) -> bool:
+        """Checks whether the RAN interface MTU size is valid.
+
+        Returns:
+            bool: Whether RAN interface MTU size is valid
+        """
+        if (ran_mtu := self._get_ran_interface_mtu_config()) is None:
+            return True
+        try:
+            return 1200 <= int(ran_mtu) <= 65535
+        except ValueError:
+            return False
+
     def _get_core_interface_config(self) -> Optional[str]:
         return self.model.config.get("core-interface")
+
+    def _get_core_interface_mtu_config(self) -> Optional[str]:
+        """Get Core interface MTU size.
+
+        Returns:
+            mtu_size (str/None): If MTU size is not configured return None
+                                If it is set, returns the configured value
+        """
+        return self.model.config.get("core-interface-mtu-size")
 
     def _get_core_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("core-gateway-ip")
@@ -231,11 +345,29 @@ class RouterOperatorCharm(CharmBase):
     def _get_access_interface_config(self) -> Optional[str]:
         return self.model.config.get("access-interface")
 
+    def _get_access_interface_mtu_config(self) -> Optional[str]:
+        """Get access interface MTU size.
+
+        Returns:
+            mtu_size (str/None): If MTU size is not configured return None
+                                If it is set, returns the configured value
+        """
+        return self.model.config.get("access-interface-mtu-size")
+
     def _get_access_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("access-gateway-ip")
 
     def _get_ran_interface_config(self) -> Optional[str]:
         return self.model.config.get("ran-interface")
+
+    def _get_ran_interface_mtu_config(self) -> Optional[str]:
+        """Get RAN interface MTU size.
+
+        Returns:
+            mtu_size (str/None): If MTU size is not configured return None
+                                If it is set, returns the configured value
+        """
+        return self.model.config.get("ran-interface-mtu-size")
 
     def _get_ran_gateway_ip_config(self) -> Optional[str]:
         return self.model.config.get("ran-gateway-ip")
