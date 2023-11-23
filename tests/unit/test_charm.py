@@ -366,14 +366,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("ops.model.Container.exists")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_a_different_valid_value_then_delete_pod_is_called(  # noqa: E501
         self,
-        patch_exists,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_exists.return_value = True
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
@@ -383,14 +380,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("ops.model.Container.exists")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_different_valid_values_then_delete_pod_is_called_twice(  # noqa: E501
         self,
-        patch_exists,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_exists.return_value = True
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
@@ -404,14 +398,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("ops.model.Container.exists")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_same_valid_value_multiple_times_then_delete_pod_is_called_once(  # noqa: E501
         self,
-        patch_exists,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_exists.return_value = True
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
@@ -437,14 +428,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("ops.model.Container.exists")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_an_invalid_value_multiple_times_then_delete_pod_is_not_called(  # noqa: E501
         self,
-        patch_exists,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_exists.return_value = True
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
