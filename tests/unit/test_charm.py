@@ -3,7 +3,7 @@
 
 import json
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from ops import testing
@@ -74,58 +74,81 @@ class TestCharm(unittest.TestCase):
             WaitingStatus("Waiting for Multus to be ready"),
         )
 
-    @patch("ops.model.Container.exec")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_is_ready_when_config_changed_then_ip_forwarding_is_set(
-        self, patch_is_ready, patch_exec
+        self, patch_is_ready
     ):
-        patch_exec_return_value = Mock()
-        patch_exec_return_value.wait_output.return_value = "net.ipv4.ip_forward = 1", "stderr"
-        patch_exec.return_value = patch_exec_return_value
+        sysctl_called = False
+        timeout = 0
+        sysctl_cmd = ["sysctl", "-w", "net.ipv4.ip_forward=1"]
+
+        def sysctl_handler(args: testing.ExecArgs) -> testing.ExecResult:
+            nonlocal sysctl_called
+            nonlocal timeout
+            sysctl_called = True
+            timeout = args.timeout
+            return testing.ExecResult(stdout="net.ipv4.ip_forward = 1")
+
+        self.harness.handle_exec("router", sysctl_cmd, handler=sysctl_handler)
+        self.harness.handle_exec("router", [], result=0)
+
         self.harness.set_can_connect(container="router", val=True)
         patch_is_ready.return_value = True
 
         self.harness.update_config()
 
-        patch_exec.assert_any_call(command=["sysctl", "-w", "net.ipv4.ip_forward=1"], timeout=30)
+        self.assertTrue(sysctl_called)
+        self.assertEqual(timeout, 30)
 
-    @patch("ops.model.Container.exec")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_is_ready_when_config_changed_then_iptables_rule_is_set(
-        self, patch_is_ready, patch_exec
+        self, patch_is_ready
     ):
-        patch_exec_return_value = Mock()
-        patch_exec_return_value.wait_output.return_value = "net.ipv4.ip_forward = 1", "stderr"
-        patch_exec.return_value = patch_exec_return_value
+        iptables_called = False
+        timeout = 0
+        iptables_cmd = [
+            "iptables-legacy",
+            "-t",
+            "nat",
+            "-A",
+            "POSTROUTING",
+            "-o",
+            "eth0",
+            "-j",
+            "MASQUERADE",
+        ]
+
+        def iptables_handler(args: testing.ExecArgs) -> testing.ExecResult:
+            nonlocal iptables_called
+            nonlocal timeout
+            iptables_called = True
+            timeout = args.timeout
+            return testing.ExecResult()
+
+        self.harness.handle_exec("router", iptables_cmd, handler=iptables_handler)
+        self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
+        self.harness.handle_exec("router", [], result=0)
+
         self.harness.set_can_connect(container="router", val=True)
         patch_is_ready.return_value = True
 
         self.harness.update_config()
 
-        patch_exec.assert_any_call(
-            command=[
-                "iptables-legacy",
-                "-t",
-                "nat",
-                "-A",
-                "POSTROUTING",
-                "-o",
-                "eth0",
-                "-j",
-                "MASQUERADE",
-            ],
-            timeout=30,
-        )
+        self.assertTrue(iptables_called)
+        self.assertEqual(timeout, 30)
 
-    @patch("ops.model.Container.exec")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_error_when_setting_ip_forwarding_when_config_changed_then_runtime_error_is_raised(  # noqa: E501
-        self, patch_is_ready, patch_exec
+        self, patch_is_ready
     ):
         stderr = "whatever error content"
-        patch_exec_return_value = Mock()
-        patch_exec_return_value.wait_output.return_value = "", stderr
-        patch_exec.return_value = patch_exec_return_value
+        sysctl_cmd = ["sysctl", "-w", "net.ipv4.ip_forward=1"]
+
+        def sysctl_handler(_: testing.ExecArgs) -> testing.ExecResult:
+            return testing.ExecResult(stderr=stderr)
+
+        self.harness.handle_exec("router", sysctl_cmd, handler=sysctl_handler)
+        self.harness.handle_exec("router", [], result=0)
         self.harness.set_can_connect(container="router", val=True)
         patch_is_ready.return_value = True
 
@@ -136,14 +159,12 @@ class TestCharm(unittest.TestCase):
             str(e.value), f"Could not set IP forwarding in workload container: {stderr}"
         )
 
-    @patch("ops.model.Container.exec")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_ip_forwarding_set_correctly_when_config_changed_then_status_is_active(
-        self, patch_is_ready, patch_exec
+        self, patch_is_ready
     ):
-        patch_exec_return_value = Mock()
-        patch_exec_return_value.wait_output.return_value = "net.ipv4.ip_forward = 1", "stderr"
-        patch_exec.return_value = patch_exec_return_value
+        self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
+        self.harness.handle_exec("router", [], result=0)
         self.harness.set_can_connect(container="router", val=True)
         patch_is_ready.return_value = True
 
