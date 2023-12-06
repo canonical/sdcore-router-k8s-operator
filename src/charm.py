@@ -2,7 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Charmed operator for the SD-Core's router."""
+"""Charmed K8s operator for the SD-Core's router."""
 
 import ipaddress
 import json
@@ -44,7 +44,7 @@ class KubernetesMultusCharmEvents(CharmEvents):
     nad_config_changed = EventSource(NadConfigChangedEvent)
 
 
-class RouterOperatorCharm(CharmBase):
+class RouterK8sOperatorCharm(CharmBase):
     """Charm the service."""
 
     on = KubernetesMultusCharmEvents()
@@ -411,4 +411,4 @@ def ip_in_cidr_format_is_valid(ip_address: str) -> bool:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main(RouterOperatorCharm)
+    main(RouterK8sOperatorCharm)
