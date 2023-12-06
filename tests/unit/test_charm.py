@@ -9,7 +9,7 @@ import pytest
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
-from charm import RouterK8sOperatorCharm
+from charm import RouterOperatorCharm
 from lib.charms.kubernetes_charm_libraries.v0.multus import NetworkAttachmentDefinition
 
 ACCESS_GATEWAY_IP = "192.168.252.1"
@@ -46,7 +46,7 @@ def update_nad_labels(nads: list[NetworkAttachmentDefinition], app_name: str) ->
 class TestCharm(unittest.TestCase):
     @patch("lightkube.core.client.GenericSyncClient")
     def setUp(self, patch_k8s_client):
-        self.harness = testing.Harness(RouterK8sOperatorCharm)
+        self.harness = testing.Harness(RouterOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 

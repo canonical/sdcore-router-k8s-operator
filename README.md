@@ -1,7 +1,7 @@
-# SD-Core Router K8s Operator
+# SD-Core Router Operator for K8s
 [![CharmHub Badge](https://charmhub.io/sdcore-router-k8s/badge.svg)](https://charmhub.io/sdcore-router-k8s)
 
-A Charmed K8s Operator for SD-Core's Router. 
+A Charmed Operator for SD-Core's Router for K8s. 
 
 ## Pre-requisites
 
