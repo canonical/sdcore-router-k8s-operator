@@ -94,7 +94,7 @@ import json
 import logging
 from dataclasses import asdict, dataclass
 from json.decoder import JSONDecodeError
-from typing import Callable, Union
+from typing import Callable, List, Optional, Union
 
 import httpx
 from lightkube import Client
@@ -123,7 +123,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 8
+LIBPATCH = 9
 
 
 logger = logging.getLogger(__name__)
@@ -150,8 +150,16 @@ class NetworkAnnotation:
 
     name: str
     interface: str
+    mac: Optional[str] = None
+    ips: Optional[List[str]] = None
 
-    dict = asdict
+    def dict(self) -> dict:
+        """Returns a NetworkAnnotation in the form of a dictionary.
+
+        Returns:
+            dict: Dictionary representation of the NetworkAnnotation
+        """
+        return {key: value for key, value in asdict(self).items() if value}
 
 
 class KubernetesMultusError(Exception):
@@ -446,8 +454,9 @@ class KubernetesClient:
             return False
         return True
 
+    @staticmethod
     def _annotations_contains_multus_networks(
-        self, annotations: dict, network_annotations: list[NetworkAnnotation]
+        annotations: dict, network_annotations: list[NetworkAnnotation]
     ) -> bool:
         if "k8s.v1.cni.cncf.io/networks" not in annotations:
             return False
@@ -460,8 +469,8 @@ class KubernetesClient:
             return False
         return True
 
+    @staticmethod
     def _container_security_context_is_set(
-        self,
         containers: list[Container],
         container_name: str,
         cap_net_admin: bool,
