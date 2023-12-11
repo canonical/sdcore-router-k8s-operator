@@ -2,7 +2,7 @@
 # Copyright 2023 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Charmed operator for the SD-Core's router."""
+"""Charmed operator for the SD-Core's router for K8s."""
 
 import ipaddress
 import json
