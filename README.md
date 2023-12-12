@@ -16,3 +16,4 @@ juju deploy sdcore-router-k8s --trust
 ## Image
 
 - **router**: `ghcr.io/canonical/ubuntu-router:0.1`
+
