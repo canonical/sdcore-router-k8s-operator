@@ -45,8 +45,9 @@ def update_nad_labels(nads: list[NetworkAttachmentDefinition], app_name: str) ->
 
 
 class TestCharm(unittest.TestCase):
-    @patch("lightkube.core.client.GenericSyncClient")
-    def setUp(self, patch_k8s_client):
+    def setUp(self):
+        self.patch_k8s_client = patch("lightkube.core.client.GenericSyncClient")
+        self.patch_k8s_client.start()
         self.harness = testing.Harness(RouterOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
