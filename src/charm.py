@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 
 from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
     KubernetesMultusCharmLib,
+    KubernetesMultusError,
     NetworkAnnotation,
     NetworkAttachmentDefinition,
 )
@@ -84,6 +85,12 @@ class RouterOperatorCharm(CharmBase):
             self.unit.status = BlockedStatus(
                 f"The following configurations are not valid: {invalid_configs}"
             )
+            return
+        try:
+            self._kubernetes_multus.is_ready()
+        except KubernetesMultusError as err:
+            self.unit.status = BlockedStatus(err.message)
+            event.defer()
             return
         self.on.nad_config_changed.emit()
         if not self._container.can_connect():
