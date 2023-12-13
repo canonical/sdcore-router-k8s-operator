@@ -77,26 +77,15 @@ class RouterOperatorCharm(CharmBase):
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
             refresh_event=self.on.nad_config_changed,
         )
-        self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.router_pebble_ready, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
-
-    def _on_install(self, event: EventBase) -> None:
-        """Handler for Juju install event.
-
-        This handler enforces availability of Multus.
-        If not available, charm goes to Blocked state.
-
-        Args:
-            event: Juju event
-        """
-        if not self._multus_is_available():
-            self.unit.status = BlockedStatus("Multus is not installed or enabled")
-            event.defer()
-            return
+        self.framework.observe(self.on.update_status, self._configure)
 
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
+        if not self._multus_is_available():
+            self.unit.status = BlockedStatus("Multus is not installed or enabled")
+            return
         if invalid_configs := self._get_invalid_configs():
             self.unit.status = BlockedStatus(
                 f"The following configurations are not valid: {invalid_configs}"
@@ -396,14 +385,14 @@ class RouterOperatorCharm(CharmBase):
         return self.model.config.get("upf-core-ip")
 
     def _multus_is_available(self) -> bool:
-        """Check whether Multus is enabled.
+        """Check whether Multus is enabled leveraging existence of NAD custom resource.
 
         Returns:
             bool: Whether Multus is enabled
         """
         client = Client()
         try:
-            client.list(res=NetworkAttachmentDefinition, namespace=self.model.name)
+            list(client.list(res=NetworkAttachmentDefinition, namespace=self.model.name))
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 return False
