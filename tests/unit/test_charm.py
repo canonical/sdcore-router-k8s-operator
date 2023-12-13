@@ -277,23 +277,18 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("lightkube.core.client.Client.get")
-    def test_given_multus_disabled_when_config_changed_then_status_is_blocked(self, patch_get):
-        patch_get.side_effect = httpx.HTTPStatusError(
+    @patch("lightkube.core.client.Client.list")
+    def test_given_multus_disabled_when_config_changed_then_status_is_blocked(self, patch_list):
+        patch_list.side_effect = httpx.HTTPStatusError(
             message="",
             request=httpx.Request(method="GET", url=""),
             response=httpx.Response(status_code=404),
         )
-        self.harness.set_can_connect(container="router", val=True)
-
-        self.harness.update_config()
+        self.harness.charm.on.install.emit()
 
         self.assertEqual(
             self.harness.model.unit.status,
-            BlockedStatus(
-                "NetworkAttachmentDefinition resource not found. "
-                "You may need to install Multus CNI."
-            ),
+            BlockedStatus("Multus is not installed or enabled"),
         )
 
     def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_interface_specified_in_nad(  # noqa: E501

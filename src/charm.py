@@ -9,12 +9,13 @@ import json
 import logging
 from typing import Any, Dict, Optional
 
+import httpx
 from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
     KubernetesMultusCharmLib,
-    KubernetesMultusError,
     NetworkAnnotation,
     NetworkAttachmentDefinition,
 )
+from lightkube import Client
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import EventSource
 from ops.charm import CharmBase, CharmEvents, EventBase
@@ -76,8 +77,23 @@ class RouterOperatorCharm(CharmBase):
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
             refresh_event=self.on.nad_config_changed,
         )
+        self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.router_pebble_ready, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
+
+    def _on_install(self, event: EventBase) -> None:
+        """Handler for Juju install event.
+
+        This handler enforces availability of Multus.
+        If not available, charm goes to Blocked state.
+
+        Args:
+            event: Juju event
+        """
+        if not self._multus_is_available():
+            self.unit.status = BlockedStatus("Multus is not installed or enabled")
+            event.defer()
+            return
 
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
@@ -85,12 +101,6 @@ class RouterOperatorCharm(CharmBase):
             self.unit.status = BlockedStatus(
                 f"The following configurations are not valid: {invalid_configs}"
             )
-            return
-        try:
-            self._kubernetes_multus.is_ready()
-        except KubernetesMultusError as err:
-            self.unit.status = BlockedStatus(err.message)
-            event.defer()
             return
         self.on.nad_config_changed.emit()
         if not self._container.can_connect():
@@ -384,6 +394,20 @@ class RouterOperatorCharm(CharmBase):
 
     def _get_upf_core_ip_config(self) -> Optional[str]:
         return self.model.config.get("upf-core-ip")
+
+    def _multus_is_available(self) -> bool:
+        """Check whether Multus is enabled.
+
+        Returns:
+            bool: Whether Multus is enabled
+        """
+        client = Client()
+        try:
+            client.list(res=NetworkAttachmentDefinition, namespace=self.model.name)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return False
+        return True
 
 
 def ip_is_valid(ip_address: str) -> bool:
