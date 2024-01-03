@@ -123,7 +123,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 11
+LIBPATCH = 12
 
 
 logger = logging.getLogger(__name__)
@@ -351,7 +351,7 @@ class KubernetesClient:
                 )
             )
         if privileged:
-            container.securityContext.privileged = True
+            container.securityContext.privileged = True  # type: ignore[union-attr]
         statefulset_delta = StatefulSet(
             spec=StatefulSetSpec(
                 selector=statefulset.spec.selector,  # type: ignore[attr-defined]
@@ -489,12 +489,12 @@ class KubernetesClient:
             bool
         """
         if not self._annotations_contains_multus_networks(
-            annotations=pod.metadata.annotations,
+            annotations=pod.metadata.annotations,  # type: ignore[arg-type,union-attr]
             network_annotations=network_annotations,
         ):
             return False
         if not self._container_security_context_is_set(
-            containers=pod.spec.containers,
+            containers=pod.spec.containers,  # type: ignore[union-attr]
             container_name=container_name,
             cap_net_admin=cap_net_admin,
             privileged=privileged,
@@ -537,9 +537,9 @@ class KubernetesClient:
         """
         for container in containers:
             if container.name == container_name:
-                if cap_net_admin and "NET_ADMIN" not in container.securityContext.capabilities.add:
+                if cap_net_admin and "NET_ADMIN" not in container.securityContext.capabilities.add:  # type: ignore[operator,union-attr]  # noqa E501
                     return False
-                if privileged and not container.securityContext.privileged:
+                if privileged and not container.securityContext.privileged:  # type: ignore[union-attr]  # noqa E501
                     return False
         return True
 
