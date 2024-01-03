@@ -44,8 +44,9 @@ def update_nad_labels(nads: list[NetworkAttachmentDefinition], app_name: str) ->
 
 
 class TestCharm(unittest.TestCase):
-    @patch("lightkube.core.client.GenericSyncClient")
-    def setUp(self, patch_k8s_client):
+    def setUp(self):
+        self.patch_k8s_client = patch("lightkube.core.client.GenericSyncClient")
+        self.patch_k8s_client.start()
         self.harness = testing.Harness(RouterOperatorCharm)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
@@ -274,6 +275,30 @@ class TestCharm(unittest.TestCase):
                 "The following configurations are not valid: "
                 "['core-gateway-ip', 'access-gateway-ip', 'ran-gateway-ip']"
             ),
+        )
+
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.multus_is_available")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
+    def test_given_multus_disabled_then_enabled_when_update_status_then_status_is_active(
+        self, patch_is_ready, patch_multus_available
+    ):
+        patch_multus_available.side_effect = [False, True]
+        patch_is_ready.return_value = True
+        self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
+        self.harness.handle_exec("router", [], result=0)
+        self.harness.set_can_connect(container="router", val=True)
+        self.harness.update_config()
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            BlockedStatus("Multus is not installed or enabled"),
+        )
+
+        self.harness.charm.on.update_status.emit()
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ActiveStatus(),
         )
 
     def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_interface_specified_in_nad(  # noqa: E501

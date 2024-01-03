@@ -77,9 +77,13 @@ class RouterOperatorCharm(CharmBase):
         )
         self.framework.observe(self.on.router_pebble_ready, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
+        self.framework.observe(self.on.update_status, self._configure)
 
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
+        if not self._kubernetes_multus.multus_is_available():
+            self.unit.status = BlockedStatus("Multus is not installed or enabled")
+            return
         if invalid_configs := self._get_invalid_configs():
             self.unit.status = BlockedStatus(
                 f"The following configurations are not valid: {invalid_configs}"
