@@ -9,13 +9,11 @@ import json
 import logging
 from typing import Any, Dict, Optional
 
-import httpx
 from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
     KubernetesMultusCharmLib,
     NetworkAnnotation,
     NetworkAttachmentDefinition,
 )
-from lightkube import Client
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import EventSource
 from ops.charm import CharmBase, CharmEvents, EventBase
@@ -83,7 +81,7 @@ class RouterOperatorCharm(CharmBase):
 
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
-        if not self._multus_is_available():
+        if not self._kubernetes_multus.multus_is_available():
             self.unit.status = BlockedStatus("Multus is not installed or enabled")
             return
         if invalid_configs := self._get_invalid_configs():
@@ -383,20 +381,6 @@ class RouterOperatorCharm(CharmBase):
 
     def _get_upf_core_ip_config(self) -> Optional[str]:
         return self.model.config.get("upf-core-ip")
-
-    def _multus_is_available(self) -> bool:
-        """Check whether Multus is enabled leveraging existence of NAD custom resource.
-
-        Returns:
-            bool: Whether Multus is enabled
-        """
-        client = Client()
-        try:
-            list(client.list(res=NetworkAttachmentDefinition, namespace=self.model.name))
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
-                return False
-        return True
 
 
 def ip_is_valid(ip_address: str) -> bool:
