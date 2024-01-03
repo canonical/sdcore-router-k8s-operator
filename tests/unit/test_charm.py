@@ -52,11 +52,7 @@ class TestCharm(unittest.TestCase):
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 
-    @patch("lightkube.core.client.Client.list")
-    def test_given_cant_connect_to_workload_when_config_changed_then_status_is_waiting(
-        self, patch_list
-    ):
-        patch_list.return_value = []
+    def test_given_cant_connect_to_workload_when_config_changed_then_status_is_waiting(self):
         self.harness.set_can_connect(container="router", val=False)
 
         self.harness.update_config()
@@ -66,14 +62,10 @@ class TestCharm(unittest.TestCase):
             WaitingStatus("Waiting for workload container to be ready"),
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_not_ready_when_config_changed_then_status_is_waiting(
-        self,
-        patch_is_ready,
-        patch_list,
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         self.harness.set_can_connect(container="router", val=True)
         patch_is_ready.return_value = False
 
@@ -84,12 +76,10 @@ class TestCharm(unittest.TestCase):
             WaitingStatus("Waiting for Multus to be ready"),
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_is_ready_when_config_changed_then_ip_forwarding_is_set(
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         sysctl_called = False
         timeout = 0
         sysctl_cmd = ["sysctl", "-w", "net.ipv4.ip_forward=1"]
@@ -112,12 +102,10 @@ class TestCharm(unittest.TestCase):
         self.assertTrue(sysctl_called)
         self.assertEqual(timeout, 30)
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_multus_is_ready_when_config_changed_then_iptables_rule_is_set(
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         iptables_called = False
         timeout = 0
         iptables_cmd = [
@@ -151,12 +139,10 @@ class TestCharm(unittest.TestCase):
         self.assertTrue(iptables_called)
         self.assertEqual(timeout, 30)
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_error_when_setting_ip_forwarding_when_config_changed_then_runtime_error_is_raised(  # noqa: E501
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         stderr = "whatever error content"
         sysctl_cmd = ["sysctl", "-w", "net.ipv4.ip_forward=1"]
 
@@ -175,12 +161,10 @@ class TestCharm(unittest.TestCase):
             str(e.value), f"Could not set IP forwarding in workload container: {stderr}"
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_ip_forwarding_set_correctly_when_config_changed_then_status_is_active(
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
         self.harness.handle_exec("router", [], result=0)
         self.harness.set_can_connect(container="router", val=True)
@@ -190,12 +174,8 @@ class TestCharm(unittest.TestCase):
 
         self.assertEqual(self.harness.model.unit.status, ActiveStatus())
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
-    def test_given_empty_ip_when_config_changed_then_status_is_blocked(
-        self, patch_is_ready, patch_list
-    ):
-        patch_list.return_value = []
+    def test_given_empty_ip_when_config_changed_then_status_is_blocked(self, patch_is_ready):
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
@@ -206,12 +186,10 @@ class TestCharm(unittest.TestCase):
             BlockedStatus("The following configurations are not valid: ['core-gateway-ip']"),
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_invalid_non_cidr_ip_when_config_changed_then_status_is_blocked(
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
@@ -233,12 +211,10 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_ip_in_cidr_format_with_too_big_mask_when_config_changed_then_status_is_blocked(
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
@@ -256,12 +232,10 @@ class TestCharm(unittest.TestCase):
             BlockedStatus("The following configurations are not valid: ['access-gateway-ip']"),
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_gateway_ip_in_cidr_format_with_too_small_mask_when_config_changed_then_status_is_blocked(  # noqa: E501
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
@@ -281,12 +255,10 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("lightkube.core.client.Client.list")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
     def test_given_string_gateway_ip_when_config_changed_then_status_is_blocked(
-        self, patch_is_ready, patch_list
+        self, patch_is_ready
     ):
-        patch_list.return_value = []
         patch_is_ready.return_value = True
         self.harness.set_can_connect(container="router", val=True)
 
@@ -313,43 +285,11 @@ class TestCharm(unittest.TestCase):
             request=httpx.Request(method="GET", url=""),
             response=httpx.Response(status_code=404),
         )
-        self.harness.update_config()
+        self.harness.charm.on.install.emit()
 
         self.assertEqual(
             self.harness.model.unit.status,
             BlockedStatus("Multus is not installed or enabled"),
-        )
-
-    @patch("lightkube.core.client.Client.list")
-    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
-    def test_given_multus_disabled_then_enabled_when_update_status_then_status_is_active(
-        self, patch_is_ready, patch_list
-    ):
-        patch_list.side_effect = [
-            httpx.HTTPStatusError(
-                message="",
-                request=httpx.Request(method="GET", url=""),
-                response=httpx.Response(status_code=404),
-            ),
-            [],
-            [],
-        ]
-        patch_is_ready.return_value = True
-        self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
-        self.harness.handle_exec("router", [], result=0)
-        self.harness.set_can_connect(container="router", val=True)
-        self.harness.update_config()
-
-        self.assertEqual(
-            self.harness.model.unit.status,
-            BlockedStatus("Multus is not installed or enabled"),
-        )
-
-        self.harness.charm.on.update_status.emit()
-
-        self.assertEqual(
-            self.harness.model.unit.status,
-            ActiveStatus(),
         )
 
     def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_interface_specified_in_nad(  # noqa: E501
@@ -426,11 +366,9 @@ class TestCharm(unittest.TestCase):
             self.assertEqual(VALID_MTU_SIZE_1, config["mtu"])
             self.assertIn(config["bridge"], ("access-br", "core-br", "ran-br"))
 
-    @patch("lightkube.core.client.Client.list")
     def test_given_default_config_when_config_is_updated_with_too_small_and_big_mtu_sizes_then_status_is_blocked(  # noqa: E501
-        self, patch_list
+        self,
     ):
-        patch_list.return_value = []
         self.harness.update_config(
             key_values={
                 "access-interface-mtu-size": TOO_SMALL_MTU_SIZE,
@@ -445,11 +383,9 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("lightkube.core.client.Client.list")
     def test_given_default_config_when_config_is_updated_with_zero_mtu_sizes_then_status_is_blocked(  # noqa: E501
-        self, patch_list
+        self,
     ):
-        patch_list.return_value = []
         self.harness.set_leader(is_leader=True)
         self.harness.update_config(
             key_values={
@@ -467,14 +403,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("lightkube.core.client.Client.list")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_a_different_valid_value_then_delete_pod_is_called(  # noqa: E501
         self,
-        patch_list,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_list.return_value = []
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
@@ -484,14 +417,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("lightkube.core.client.Client.list")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_different_valid_values_then_delete_pod_is_called_twice(  # noqa: E501
         self,
-        patch_list,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_list.return_value = []
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
@@ -505,14 +435,11 @@ class TestCharm(unittest.TestCase):
 
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesClient.list_network_attachment_definitions")
     @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.delete_pod")
-    @patch("lightkube.core.client.Client.list")
     def test_given_container_can_connect_when_core_net_mtu_config_changed_to_same_valid_value_multiple_times_then_delete_pod_is_called_once(  # noqa: E501
         self,
-        patch_list,
         patch_delete_pod,
         patch_list_na_definitions,
     ):
-        patch_list.return_value = []
         self.harness.set_can_connect(container="router", val=True)
         original_nads = self.harness.charm._network_attachment_definitions_from_config()
         update_nad_labels(original_nads, self.harness.charm.app.name)
