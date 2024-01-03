@@ -123,7 +123,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 9
+LIBPATCH = 11
 
 
 logger = logging.getLogger(__name__)
@@ -384,6 +384,54 @@ class KubernetesClient:
             raise KubernetesMultusError(f"Could not patch statefulset {name}")
         logger.info("Multus annotation added to %s statefulset", name)
 
+    def unpatch_statefulset(
+        self,
+        name: str,
+        container_name: str,
+    ) -> None:
+        """Removes annotations, security privilege and NET_ADMIN capability from stateful set.
+
+        Args:
+            name: Statefulset name
+            container_name: Container name
+        """
+        try:
+            statefulset = self.client.get(res=StatefulSet, name=name, namespace=self.namespace)
+        except ApiError:
+            raise KubernetesMultusError(f"Could not get statefulset {name}")
+
+        container = Container(name=container_name)
+        container.securityContext = SecurityContext(
+            capabilities=Capabilities(
+                drop=[
+                    "NET_ADMIN",
+                ]
+            )
+        )
+        container.securityContext.privileged = False
+        statefulset_delta = StatefulSet(
+            spec=StatefulSetSpec(
+                selector=statefulset.spec.selector,  # type: ignore[attr-defined]
+                serviceName=statefulset.spec.serviceName,  # type: ignore[attr-defined]
+                template=PodTemplateSpec(
+                    metadata=ObjectMeta(annotations={"k8s.v1.cni.cncf.io/networks": "[]"}),
+                    spec=PodSpec(containers=[container]),
+                ),
+            )
+        )
+        try:
+            self.client.patch(
+                res=StatefulSet,
+                name=name,
+                obj=statefulset_delta,
+                patch_type=PatchType.APPLY,
+                namespace=self.namespace,
+                field_manager=self.__class__.__name__,
+            )
+        except ApiError:
+            raise KubernetesMultusError(f"Could not remove patches from statefulset {name}")
+        logger.info("Multus annotation removed from %s statefulset", name)
+
     def statefulset_is_patched(
         self,
         name: str,
@@ -493,6 +541,23 @@ class KubernetesClient:
                     return False
                 if privileged and not container.securityContext.privileged:
                     return False
+        return True
+
+    def multus_is_available(self) -> bool:
+        """Check whether Multus is enabled leveraging existence of NAD custom resource.
+
+        Returns:
+            bool: Whether Multus is enabled
+        """
+        try:
+            list(self.client.list(res=NetworkAttachmentDefinition, namespace=self.namespace))
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return False
+            else:
+                raise KubernetesMultusError(
+                    "Unexpected outcome when checking for Multus availability"
+                )
         return True
 
 
@@ -658,11 +723,15 @@ class KubernetesMultusCharmLib(Object):
         return "-".join(self.model.unit.name.rsplit("/", 1))
 
     def _on_remove(self, event: RemoveEvent) -> None:
-        """Deletes network attachment definitions.
+        """Deletes network attachment definitions and removes patch.
 
         Args:
             event: RemoveEvent
         """
+        self.kubernetes.unpatch_statefulset(
+            name=self.model.app.name,
+            container_name=self.container_name,
+        )
         for network_attachment_definition in self.network_attachment_definitions_func():
             if self.kubernetes.network_attachment_definition_is_created(
                 network_attachment_definition=network_attachment_definition
@@ -674,3 +743,11 @@ class KubernetesMultusCharmLib(Object):
     def delete_pod(self) -> None:
         """Delete the pod."""
         self.kubernetes.delete_pod(self._pod)
+
+    def multus_is_available(self) -> bool:
+        """Check whether Multus is enabled leveraging existence of NAD custom resource.
+
+        Returns:
+            bool: Whether Multus is enabled
+        """
+        return self.kubernetes.multus_is_available()
