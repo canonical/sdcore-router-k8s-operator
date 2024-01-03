@@ -5,7 +5,6 @@ import json
 import unittest
 from unittest.mock import patch
 
-import httpx
 import pytest
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
@@ -278,18 +277,28 @@ class TestCharm(unittest.TestCase):
             ),
         )
 
-    @patch("lightkube.core.client.Client.list")
-    def test_given_multus_disabled_when_config_changed_then_status_is_blocked(self, patch_list):
-        patch_list.side_effect = httpx.HTTPStatusError(
-            message="",
-            request=httpx.Request(method="GET", url=""),
-            response=httpx.Response(status_code=404),
-        )
-        self.harness.charm.on.install.emit()
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.multus_is_available")
+    @patch(f"{MULTUS_LIBRARY_PATH}.KubernetesMultusCharmLib.is_ready")
+    def test_given_multus_disabled_then_enabled_when_update_status_then_status_is_active(
+        self, patch_is_ready, patch_multus_available
+    ):
+        patch_multus_available.side_effect = [False, True]
+        patch_is_ready.return_value = True
+        self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
+        self.harness.handle_exec("router", [], result=0)
+        self.harness.set_can_connect(container="router", val=True)
+        self.harness.update_config()
 
         self.assertEqual(
             self.harness.model.unit.status,
             BlockedStatus("Multus is not installed or enabled"),
+        )
+
+        self.harness.charm.on.update_status.emit()
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ActiveStatus(),
         )
 
     def test_given_default_config_when_network_attachment_definitions_from_config_is_called_then_no_interface_specified_in_nad(  # noqa: E501
