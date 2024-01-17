@@ -7,7 +7,7 @@
 import ipaddress
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
     KubernetesMultusCharmLib,
@@ -58,20 +58,7 @@ class RouterOperatorCharm(CharmBase):
             container_name=self._container_name,
             cap_net_admin=True,
             privileged=True,
-            network_annotations=[
-                NetworkAnnotation(
-                    name=CORE_GW_NAD_NAME,
-                    interface=CORE_INTERFACE_NAME,
-                ),
-                NetworkAnnotation(
-                    name=RAN_GW_NAD_NAME,
-                    interface=RAN_INTERFACE_NAME,
-                ),
-                NetworkAnnotation(
-                    name=ACCESS_GW_NAD_NAME,
-                    interface=ACCESS_INTERFACE_NAME,
-                ),
-            ],
+            network_annotations_func=self._generate_network_annotations,
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
             refresh_event=self.on.nad_config_changed,
         )
@@ -133,6 +120,27 @@ class RouterOperatorCharm(CharmBase):
             timeout=30,
         )
         return process.wait_output()
+
+    def _generate_network_annotations(self) -> List[NetworkAnnotation]:
+        """Generates a list of NetworkAnnotations to be used by Router's StatefulSet.
+
+        Returns:
+            List[NetworkAnnotation]: List of NetworkAnnotations
+        """
+        return [
+            NetworkAnnotation(
+                name=CORE_GW_NAD_NAME,
+                interface=CORE_INTERFACE_NAME,
+            ),
+            NetworkAnnotation(
+                name=RAN_GW_NAD_NAME,
+                interface=RAN_INTERFACE_NAME,
+            ),
+            NetworkAnnotation(
+                name=ACCESS_GW_NAD_NAME,
+                interface=ACCESS_INTERFACE_NAME,
+            ),
+        ]
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
         """Returns list of Multus NetworkAttachmentDefinitions to be created based on config.
