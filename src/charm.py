@@ -79,11 +79,9 @@ class RouterOperatorCharm(CharmBase):
         self.on.nad_config_changed.emit()
         if not self._container.can_connect():
             self.unit.status = WaitingStatus("Waiting for workload container to be ready")
-            event.defer()
             return
         if not self._kubernetes_multus.is_ready():
             self.unit.status = WaitingStatus("Waiting for Multus to be ready")
-            event.defer()
             return
         self._set_ip_forwarding()
         self._set_ip_tables()
