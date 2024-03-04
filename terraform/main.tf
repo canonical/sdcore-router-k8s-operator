@@ -11,6 +11,6 @@ resource "juju_application" "router" {
   }
   config = var.config
 
-  units  = 1
-  trust  = true
+  units = 1
+  trust = true
 }
