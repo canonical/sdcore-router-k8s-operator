@@ -20,7 +20,7 @@ async def deploy_grafana_agent(ops_test):
     """Deploy the grafana-agent charm."""
     await ops_test.model.deploy(
         GRAFANA_AGENT_CHARM_NAME,
-        application_name=APPLICATION_NAME,
+        application_name=GRAFANA_AGENT_CHARM_NAME,
         channel="stable",
     )
 
