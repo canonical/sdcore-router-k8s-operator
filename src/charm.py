@@ -14,6 +14,7 @@ from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import
     NetworkAnnotation,
     NetworkAttachmentDefinition,
 )
+from charms.loki_k8s.v1.loki_push_api import LogForwarder  # type: ignore[import]
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import EventSource
 from ops.charm import CharmBase, CharmEvents, EventBase
@@ -32,6 +33,7 @@ ACCESS_INTERFACE_BRIDGE_NAME = "access-br"
 CORE_INTERFACE_BRIDGE_NAME = "core-br"
 RAN_INTERFACE_BRIDGE_NAME = "ran-br"
 CNI_VERSION = "0.3.1"
+LOGGING_RELATION_NAME = "logging"
 
 
 class NadConfigChangedEvent(EventBase):
@@ -62,6 +64,7 @@ class RouterOperatorCharm(CharmBase):
             network_attachment_definitions_func=self._network_attachment_definitions_from_config,
             refresh_event=self.on.nad_config_changed,
         )
+        self._logging = LogForwarder(charm=self, relation_name=LOGGING_RELATION_NAME)
         self.framework.observe(self.on.router_pebble_ready, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.update_status, self._configure)

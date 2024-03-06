@@ -18,5 +18,10 @@ resources:
     description: OCI image for SD-Core's router
     upstream-source: ghcr.io/canonical/ubuntu-router:0.1
 
+requires:
+  logging:
+    interface: loki_push_api
+
 assumes:
   - k8s-api
+  - juju >= 3.4

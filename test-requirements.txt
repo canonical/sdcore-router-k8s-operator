@@ -200,6 +200,7 @@ types-pyyaml==6.0.12.12
     # via -r test-requirements.in
 typing-extensions==4.10.0
     # via
+    #   -c requirements.txt
     #   mypy
     #   typing-inspect
 typing-inspect==0.9.0
