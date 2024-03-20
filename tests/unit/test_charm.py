@@ -55,6 +55,7 @@ class TestCharm(unittest.TestCase):
         self.harness.set_can_connect(container="router", val=False)
 
         self.harness.update_config()
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -69,6 +70,7 @@ class TestCharm(unittest.TestCase):
         patch_is_ready.return_value = False
 
         self.harness.update_config()
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -170,6 +172,7 @@ class TestCharm(unittest.TestCase):
         patch_is_ready.return_value = True
 
         self.harness.update_config()
+        self.harness.evaluate_status()
 
         self.assertEqual(self.harness.model.unit.status, ActiveStatus())
 
@@ -179,6 +182,7 @@ class TestCharm(unittest.TestCase):
         self.harness.set_can_connect(container="router", val=True)
 
         self.harness.update_config(key_values={"core-gateway-ip": ""})
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -201,6 +205,7 @@ class TestCharm(unittest.TestCase):
                 "upf-core-ip": "192.168.250.3",
             }
         )
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -225,6 +230,7 @@ class TestCharm(unittest.TestCase):
                 "ue-subnet": f"{UE_SUBNET}/{VALID_MASK_HIGH}",
             }
         )
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -246,6 +252,7 @@ class TestCharm(unittest.TestCase):
                 "ue-subnet": f"{UE_SUBNET}/{INVALID_MASK_TOO_LOW}",
             }
         )
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -268,6 +275,7 @@ class TestCharm(unittest.TestCase):
                 "ran-gateway-ip": INVALID_STRING_IP,
             }
         )
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -282,12 +290,13 @@ class TestCharm(unittest.TestCase):
     def test_given_multus_disabled_then_enabled_when_update_status_then_status_is_active(
         self, patch_is_ready, patch_multus_available
     ):
-        patch_multus_available.side_effect = [False, True]
+        patch_multus_available.side_effect = [False, False, True, True]
         patch_is_ready.return_value = True
         self.harness.handle_exec("router", ["sysctl"], result="net.ipv4.ip_forward = 1")
         self.harness.handle_exec("router", [], result=0)
         self.harness.set_can_connect(container="router", val=True)
         self.harness.update_config()
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -295,6 +304,7 @@ class TestCharm(unittest.TestCase):
         )
 
         self.harness.charm.on.update_status.emit()
+        self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
@@ -385,6 +395,7 @@ class TestCharm(unittest.TestCase):
                 "ran-interface-mtu-size": TOO_BIG_MTU_SIZE,
             }
         )
+        self.harness.evaluate_status()
         self.assertEqual(
             self.harness.model.unit.status,
             BlockedStatus(
@@ -403,6 +414,7 @@ class TestCharm(unittest.TestCase):
                 "ran-interface-mtu-size": ZERO_MTU_SIZE,
             }
         )
+        self.harness.evaluate_status()
         self.assertEqual(
             self.harness.model.unit.status,
             BlockedStatus(

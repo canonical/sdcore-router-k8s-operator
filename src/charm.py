@@ -16,10 +16,9 @@ from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder  # type: ignore[import]
 from lightkube.models.meta_v1 import ObjectMeta
-from ops import EventSource
+from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, EventSource, WaitingStatus
 from ops.charm import CharmBase, CharmEvents, EventBase
 from ops.main import main
-from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +52,7 @@ class RouterOperatorCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
+        self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
         self._container_name = self._service_name = "router"
         self._container = self.unit.get_container(self._container_name)
         self._kubernetes_multus = KubernetesMultusCharmLib(
@@ -69,26 +69,45 @@ class RouterOperatorCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.update_status, self._configure)
 
+    def _on_collect_unit_status(self, event: CollectStatusEvent):
+        """Checks the unit status and set it when CollectStatusEvent is fired.
+
+        Args:
+            event: CollectStatusEvent
+        """
+        if not self._kubernetes_multus.multus_is_available():
+            event.add_status(BlockedStatus("Multus is not installed or enabled"))
+            logger.info("Multus is not installed or enabled")
+            return
+        if invalid_configs := self._get_invalid_configs():
+            event.add_status(
+                BlockedStatus(f"The following configurations are not valid: {invalid_configs}")
+            )
+            logger.info(f"The following configurations are not valid: {invalid_configs}")
+            return
+        if not self._container.can_connect():
+            event.add_status(WaitingStatus("Waiting for workload container to be ready"))
+            logger.info("Waiting for workload container to be ready")
+            return
+        if not self._kubernetes_multus.is_ready():
+            event.add_status(WaitingStatus("Waiting for Multus to be ready"))
+            logger.info("Waiting for Multus to be ready")
+            return
+        event.add_status(ActiveStatus())
+
     def _configure(self, event: EventBase) -> None:
         """Config changed event."""
         if not self._kubernetes_multus.multus_is_available():
-            self.unit.status = BlockedStatus("Multus is not installed or enabled")
             return
-        if invalid_configs := self._get_invalid_configs():
-            self.unit.status = BlockedStatus(
-                f"The following configurations are not valid: {invalid_configs}"
-            )
+        if self._get_invalid_configs():
             return
         self.on.nad_config_changed.emit()
         if not self._container.can_connect():
-            self.unit.status = WaitingStatus("Waiting for workload container to be ready")
             return
         if not self._kubernetes_multus.is_ready():
-            self.unit.status = WaitingStatus("Waiting for Multus to be ready")
             return
         self._set_ip_forwarding()
         self._set_ip_tables()
-        self.unit.status = ActiveStatus()
 
     def _get_invalid_configs(self) -> list[str]:
         invalid_configs = []
