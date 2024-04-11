@@ -7,7 +7,7 @@
 import ipaddress
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
     KubernetesMultusCharmLib,
@@ -360,7 +360,7 @@ class RouterOperatorCharm(CharmBase):
             return False
 
     def _get_core_interface_config(self) -> Optional[str]:
-        return self.model.config.get("core-interface")
+        return cast(Optional[str], self.model.config.get("core-interface"))
 
     def _get_core_interface_mtu_config(self) -> Optional[str]:
         """Get Core interface MTU size.
@@ -369,13 +369,13 @@ class RouterOperatorCharm(CharmBase):
             mtu_size (str/None): If MTU size is not configured return None
                                 If it is set, returns the configured value
         """
-        return self.model.config.get("core-interface-mtu-size")
+        return cast(Optional[str], self.model.config.get("core-interface-mtu-size"))
 
     def _get_core_gateway_ip_config(self) -> Optional[str]:
-        return self.model.config.get("core-gateway-ip")
+        return cast(Optional[str], self.model.config.get("core-gateway-ip"))
 
     def _get_access_interface_config(self) -> Optional[str]:
-        return self.model.config.get("access-interface")
+        return cast(Optional[str], self.model.config.get("access-interface"))
 
     def _get_access_interface_mtu_config(self) -> Optional[str]:
         """Get access interface MTU size.
@@ -384,13 +384,13 @@ class RouterOperatorCharm(CharmBase):
             mtu_size (str/None): If MTU size is not configured return None
                                 If it is set, returns the configured value
         """
-        return self.model.config.get("access-interface-mtu-size")
+        return cast(Optional[str], self.model.config.get("access-interface-mtu-size"))
 
     def _get_access_gateway_ip_config(self) -> Optional[str]:
-        return self.model.config.get("access-gateway-ip")
+        return cast(Optional[str], self.model.config.get("access-gateway-ip"))
 
     def _get_ran_interface_config(self) -> Optional[str]:
-        return self.model.config.get("ran-interface")
+        return cast(Optional[str], self.model.config.get("ran-interface"))
 
     def _get_ran_interface_mtu_config(self) -> Optional[str]:
         """Get RAN interface MTU size.
@@ -399,16 +399,16 @@ class RouterOperatorCharm(CharmBase):
             mtu_size (str/None): If MTU size is not configured return None
                                 If it is set, returns the configured value
         """
-        return self.model.config.get("ran-interface-mtu-size")
+        return cast(Optional[str], self.model.config.get("ran-interface-mtu-size"))
 
     def _get_ran_gateway_ip_config(self) -> Optional[str]:
-        return self.model.config.get("ran-gateway-ip")
+        return cast(Optional[str], self.model.config.get("ran-gateway-ip"))
 
     def _get_ue_subnet_config(self) -> Optional[str]:
-        return self.model.config.get("ue-subnet")
+        return cast(Optional[str], self.model.config.get("ue-subnet"))
 
     def _get_upf_core_ip_config(self) -> Optional[str]:
-        return self.model.config.get("upf-core-ip")
+        return cast(Optional[str], self.model.config.get("upf-core-ip"))
 
 
 def ip_is_valid(ip_address: str) -> bool:
