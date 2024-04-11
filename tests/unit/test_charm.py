@@ -6,10 +6,10 @@ import unittest
 from unittest.mock import patch
 
 import pytest
+from charm import RouterOperatorCharm
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
-from charm import RouterOperatorCharm
 from lib.charms.kubernetes_charm_libraries.v0.multus import NetworkAttachmentDefinition
 
 ACCESS_GATEWAY_IP = "192.168.252.1"
@@ -33,7 +33,7 @@ VALID_MTU_SIZE_2 = 1200  # Lower edge value
 
 
 def update_nad_labels(nads: list[NetworkAttachmentDefinition], app_name: str) -> None:
-    """Sets NetworkAttachmentDefinition metadata labels.
+    """Set NetworkAttachmentDefinition metadata labels.
 
     Args:
         nads: list of NetworkAttachmentDefinition
