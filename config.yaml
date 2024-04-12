@@ -38,7 +38,7 @@ options:
   ue-subnet:
     type: string
     default: 172.250.0.0/16
-    description: Subnet used by User Equipments in CIDR format
+    description: Subnet used by User Equipment in CIDR format
   upf-core-ip:
     type: string
     default: 192.168.250.3

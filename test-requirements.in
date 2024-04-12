@@ -1,12 +1,8 @@
-PyYAML
-black
+codespell
 coverage[toml]
-flake8-docstrings
-flake8-builtins
-isort
 mypy
-pep8-naming
-pyproject-flake8
 pytest
 pytest-operator
+PyYAML
+ruff
 types-PyYAML

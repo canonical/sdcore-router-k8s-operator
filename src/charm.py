@@ -70,7 +70,7 @@ class RouterOperatorCharm(CharmBase):
         self.framework.observe(self.on.update_status, self._configure)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
-        """Checks the unit status and set it when CollectStatusEvent is fired.
+        """Check the unit status and set it when CollectStatusEvent is fired.
 
         Args:
             event: CollectStatusEvent
@@ -130,7 +130,7 @@ class RouterOperatorCharm(CharmBase):
         return invalid_configs
 
     def _exec_command_in_workload(self, command: str) -> tuple:
-        """Executes command in workload container.
+        """Execute command in workload container.
 
         Args:
             command: Command to execute
@@ -142,7 +142,7 @@ class RouterOperatorCharm(CharmBase):
         return process.wait_output()
 
     def _generate_network_annotations(self) -> List[NetworkAnnotation]:
-        """Generates a list of NetworkAnnotations to be used by Router's StatefulSet.
+        """Generate a list of NetworkAnnotations to be used by Router's StatefulSet.
 
         Returns:
             List[NetworkAnnotation]: List of NetworkAnnotations
@@ -163,7 +163,7 @@ class RouterOperatorCharm(CharmBase):
         ]
 
     def _network_attachment_definitions_from_config(self) -> list[NetworkAttachmentDefinition]:
-        """Returns list of Multus NetworkAttachmentDefinitions to be created based on config.
+        """Return list of Multus NetworkAttachmentDefinitions to be created based on config.
 
         Returns:
             network_attachment_definitions: list[NetworkAttachmentDefinition]
@@ -274,7 +274,7 @@ class RouterOperatorCharm(CharmBase):
         return config
 
     def _set_ip_tables(self) -> None:
-        """Configures firewall for IP masquerading.
+        """Configure firewall for IP masquerading.
 
         Masks requests with the IP address of the firewall's eth0 interface.
         """
@@ -284,7 +284,7 @@ class RouterOperatorCharm(CharmBase):
         logger.info("Successfully set ip tables")
 
     def _set_ip_forwarding(self) -> None:
-        """Sets IP forwarding in workload container."""
+        """Set IP forwarding in workload container."""
         stdout, stderr = self._exec_command_in_workload(command="sysctl -w net.ipv4.ip_forward=1")
         if "net.ipv4.ip_forward = 1" not in stdout:
             raise RuntimeError(f"Could not set IP forwarding in workload container: {stderr}")
@@ -321,7 +321,7 @@ class RouterOperatorCharm(CharmBase):
         return ip_is_valid(ip)
 
     def _core_interface_mtu_size_is_valid(self) -> bool:
-        """Checks whether the core interface MTU size is valid.
+        """Check whether the core interface MTU size is valid.
 
         Returns:
             bool: Whether core interface MTU size is valid
@@ -334,7 +334,7 @@ class RouterOperatorCharm(CharmBase):
             return False
 
     def _access_interface_mtu_size_is_valid(self) -> bool:
-        """Checks whether the access interface MTU size is valid.
+        """Check whether the access interface MTU size is valid.
 
         Returns:
             bool: Whether access interface MTU size is valid
@@ -347,7 +347,7 @@ class RouterOperatorCharm(CharmBase):
             return False
 
     def _ran_interface_mtu_size_is_valid(self) -> bool:
-        """Checks whether the RAN interface MTU size is valid.
+        """Check whether the RAN interface MTU size is valid.
 
         Returns:
             bool: Whether RAN interface MTU size is valid
