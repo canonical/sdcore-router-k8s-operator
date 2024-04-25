@@ -10,7 +10,7 @@ A Charmed Operator for SD-Core's Router for K8s.
 ## Usage
 
 ```bash
-juju deploy sdcore-router-k8s --trust
+juju deploy sdcore-router-k8s --trust --channel=1.4/edge
 ```
 
 ## Image
