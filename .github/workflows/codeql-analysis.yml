@@ -1,9 +1,0 @@
-name: "CodeQL"
-
-on:
-  push:
-  schedule:
-    - cron: '25 13 * * 0'
-
-jobs:
-
