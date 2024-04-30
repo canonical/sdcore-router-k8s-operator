@@ -6,6 +6,4 @@ on:
     - cron: '25 13 * * 0'
 
 jobs:
-  codeql:
-    name: CodeQL Analysis
-    uses: canonical/sdcore-github-workflows/.github/workflows/codeql-analysis.yml@v1.0.0
+
