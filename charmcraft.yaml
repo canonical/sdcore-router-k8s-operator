@@ -1,3 +1,34 @@
+name: sdcore-router-k8s
+
+summary: A Charmed Operator for SD-Core's router.
+description: |
+  A Charmed Operator for SD-Core's router.
+links:
+  website:
+    - https://charmhub.io/sdcore-router-k8s
+  source:
+    - https://github.com/canonical/sdcore-router-k8s-operator
+  issues:
+    - https://github.com/canonical/sdcore-router-k8s-operator/issues
+
+containers:
+  router:
+    resource: router-image
+
+resources:
+  router-image:
+    type: oci-image
+    description: OCI image for SD-Core's router
+    upstream-source: ghcr.io/canonical/ubuntu-router:0.1
+
+requires:
+  logging:
+    interface: loki_push_api
+
+assumes:
+  - k8s-api
+  - juju >= 3.4
+
 type: charm
 bases:
   - build-on:
