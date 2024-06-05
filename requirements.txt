@@ -10,7 +10,7 @@ certifi==2024.2.2
     # via
     #   httpcore
     #   httpx
-cosl==0.0.11
+cosl==0.0.12
     # via -r requirements.in
 h11==0.14.0
     # via httpcore
