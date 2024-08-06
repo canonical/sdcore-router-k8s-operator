@@ -11,6 +11,12 @@ links:
   issues:
     - https://github.com/canonical/sdcore-router-k8s-operator/issues
 
+parts:
+  charm:
+    build-packages:
+      - cargo
+      - rustc
+
 containers:
   router:
     resource: router-image
