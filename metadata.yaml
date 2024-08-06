@@ -12,12 +12,6 @@ containers:
   router:
     resource: router-image
 
-parts:
-  charm:
-    build-packages:
-      - cargo
-      - rustc
-
 resources:
   router-image:
     type: oci-image
