@@ -327,7 +327,7 @@ class TestCharm(unittest.TestCase):
             config = json.loads(nad.spec["config"])
             self.assertNotIn("master", config)
             self.assertEqual("bridge", config["type"])
-            self.assertIn(config["bridge"], ("access-br", "core-br", "ran-br"))
+            assert config["bridge"] in ("access-br", "core-br", "ran-br")
 
     def test_given_default_config_with_interfaces_when_network_attachment_definitions_from_config_is_called_then_interfaces_specified_in_nad(  # noqa: E501
         self,
@@ -364,7 +364,7 @@ class TestCharm(unittest.TestCase):
             config = json.loads(nad.spec["config"])
             self.assertNotIn("master", config)
             self.assertEqual("bridge", config["type"])
-            self.assertIn(config["bridge"], ("access-br", "core-br", "ran-br"))
+            assert config["bridge"] in ("access-br", "core-br", "ran-br")
             self.assertNotIn("mtu", config)
 
     def test_given_default_config_when_config_is_updated_with_valid_mtu_sizes_then_mtu_sizes_specified_in_nad(  # noqa: E501
@@ -383,7 +383,7 @@ class TestCharm(unittest.TestCase):
             self.assertNotIn("master", config)
             self.assertEqual("bridge", config["type"])
             self.assertEqual(VALID_MTU_SIZE_1, config["mtu"])
-            self.assertIn(config["bridge"], ("access-br", "core-br", "ran-br"))
+            assert config["bridge"] in ("access-br", "core-br", "ran-br")
 
     def test_given_default_config_when_config_is_updated_with_too_small_and_big_mtu_sizes_then_status_is_blocked(  # noqa: E501
         self,
