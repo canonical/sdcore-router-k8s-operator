@@ -39,6 +39,7 @@ def update_nad_labels(nads: list[NetworkAttachmentDefinition], app_name: str) ->
         app_name: application name
     """
     for nad in nads:
+        assert nad.metadata
         nad.metadata.labels = {"app.juju.is/created-by": app_name}
 
 
@@ -280,6 +281,7 @@ class TestCharm:
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
         for nad in nads:
+            assert nad.spec
             config = json.loads(nad.spec["config"])
             assert "master" not in config
             assert "bridge" == config["type"]
@@ -301,6 +303,8 @@ class TestCharm:
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
         for nad in nads:
+            assert nad.spec
+            assert nad.metadata
             config = json.loads(nad.spec["config"])
             assert config["master"] == nad.metadata.name
             assert config["type"] == "macvlan"
@@ -315,6 +319,7 @@ class TestCharm:
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
         for nad in nads:
+            assert nad.spec
             config = json.loads(nad.spec["config"])
             assert "master" not in config
             assert "bridge" == config["type"]
@@ -331,6 +336,7 @@ class TestCharm:
         )
         nads = self.harness.charm._network_attachment_definitions_from_config()
         for nad in nads:
+            assert nad.spec
             config = json.loads(nad.spec["config"])
             assert "master" not in config
             assert "bridge" == config["type"]
@@ -409,6 +415,7 @@ class TestCharm:
         )
         update_nad_labels(nads_after_second_config_change, self.harness.charm.app.name)
         for nad in nads_after_second_config_change:
+            assert nad.metadata
             nad.metadata.labels = {"app.juju.is/created-by": self.harness.charm.app.name}
         self.mock_list_na_definitions.return_value = nads_after_second_config_change
         self.harness.update_config(key_values={"core-interface-mtu-size": VALID_MTU_SIZE_2})

@@ -9,15 +9,16 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, cast
 
-from charms.kubernetes_charm_libraries.v0.multus import (  # type: ignore[import]
+from charms.kubernetes_charm_libraries.v0.multus import (
     KubernetesMultusCharmLib,
     NetworkAnnotation,
     NetworkAttachmentDefinition,
 )
-from charms.loki_k8s.v1.loki_push_api import LogForwarder  # type: ignore[import]
+from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from lightkube.models.meta_v1 import ObjectMeta
 from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, EventSource, WaitingStatus
-from ops.charm import CharmBase, CharmEvents, EventBase
+from ops.charm import CharmBase, CharmEvents
+from ops.framework import EventBase
 from ops.main import main
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,7 @@ class KubernetesMultusCharmEvents(CharmEvents):
 class RouterOperatorCharm(CharmBase):
     """Charm the service."""
 
-    on = KubernetesMultusCharmEvents()
+    on = KubernetesMultusCharmEvents()  # type: ignore
 
     def __init__(self, *args):
         super().__init__(*args)
