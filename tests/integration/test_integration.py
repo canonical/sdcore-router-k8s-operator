@@ -45,9 +45,7 @@ async def deploy(ops_test: OpsTest, request):
 
 
 @pytest.mark.abort_on_fail
-async def test_given_charm_is_built_when_deployed_then_status_is_active(
-    ops_test: OpsTest, deploy
-):
+async def test_given_charm_is_built_when_deployed_then_status_is_active(ops_test: OpsTest, deploy):
     assert ops_test.model
     await ops_test.model.wait_for_idle(
         apps=[APPLICATION_NAME],
