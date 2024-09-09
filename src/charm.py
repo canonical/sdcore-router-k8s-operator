@@ -16,8 +16,8 @@ from charms.kubernetes_charm_libraries.v0.multus import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from lightkube.models.meta_v1 import ObjectMeta
-from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, EventSource, WaitingStatus
-from ops.charm import CharmBase, CharmEvents
+from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus
+from ops.charm import CharmBase
 from ops.framework import EventBase
 from ops.main import main
 
@@ -36,20 +36,8 @@ CNI_VERSION = "0.3.1"
 LOGGING_RELATION_NAME = "logging"
 
 
-class NadConfigChangedEvent(EventBase):
-    """Event triggered when an existing network attachment definition is changed."""
-
-
-class KubernetesMultusCharmEvents(CharmEvents):
-    """Kubernetes Multus charm events."""
-
-    nad_config_changed = EventSource(NadConfigChangedEvent)
-
-
 class RouterOperatorCharm(CharmBase):
     """Charm the service."""
-
-    on = KubernetesMultusCharmEvents()  # type: ignore
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -57,18 +45,20 @@ class RouterOperatorCharm(CharmBase):
         self._container_name = self._service_name = "router"
         self._container = self.unit.get_container(self._container_name)
         self._kubernetes_multus = KubernetesMultusCharmLib(
-            charm=self,
+            namespace=self.model.name,
+            statefulset_name=self.model.app.name,
+            pod_name="-".join(self.model.unit.name.rsplit("/", 1)),
             container_name=self._container_name,
             cap_net_admin=True,
             privileged=True,
-            network_annotations_func=self._generate_network_annotations,
-            network_attachment_definitions_func=self._network_attachment_definitions_from_config,
-            refresh_event=self.on.nad_config_changed,
+            network_annotations=self._generate_network_annotations(),
+            network_attachment_definitions=self._network_attachment_definitions_from_config(),
         )
         self._logging = LogForwarder(charm=self, relation_name=LOGGING_RELATION_NAME)
         self.framework.observe(self.on.router_pebble_ready, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.update_status, self._configure)
+        self.framework.observe(self.on.remove, self._on_remove)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
         """Check the unit status and set it when CollectStatusEvent is fired.
@@ -102,13 +92,19 @@ class RouterOperatorCharm(CharmBase):
             return
         if self._get_invalid_configs():
             return
-        self.on.nad_config_changed.emit()
+        self._kubernetes_multus.configure()
         if not self._container.can_connect():
             return
         if not self._kubernetes_multus.is_ready():
             return
         self._set_ip_forwarding()
         self._set_ip_tables()
+
+    def _on_remove(self, _) -> None:
+        """Handle the remove event."""
+        if not self.unit.is_leader():
+            return
+        self._kubernetes_multus.remove()
 
     def _get_invalid_configs(self) -> list[str]:
         invalid_configs = []
