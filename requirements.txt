@@ -12,7 +12,7 @@ certifi==2024.7.4
     # via
     #   httpcore
     #   httpx
-cosl==0.0.31
+cosl==0.0.33
     # via -r requirements.in
 h11==0.14.0
     # via httpcore
@@ -30,7 +30,7 @@ lightkube==0.15.4
     # via
     #   -r requirements.in
     #   cosl
-lightkube-models==1.30.0.8
+lightkube-models==1.31.1.8
     # via
     #   -r requirements.in
     #   lightkube
