@@ -66,7 +66,7 @@ oauthlib==3.2.2
     # via
     #   kubernetes
     #   requests-oauthlib
-ops==2.16.1
+ops==2.17.0
     # via ops-scenario
 ops-scenario==6.1.6
     # via -r test-requirements.in
@@ -112,7 +112,7 @@ pyrfc3339==1.1
     # via
     #   juju
     #   macaroonbakery
-pyright==1.1.381
+pyright==1.1.382.post1
     # via -r test-requirements.in
 pytest==8.3.3
     # via
@@ -123,7 +123,7 @@ pytest-asyncio==0.21.2
     # via
     #   -r test-requirements.in
     #   pytest-operator
-pytest-operator==0.36.0
+pytest-operator==0.37.0
     # via -r test-requirements.in
 python-dateutil==2.9.0.post0
     # via kubernetes
@@ -165,7 +165,9 @@ traitlets==5.14.3
     #   ipython
     #   matplotlib-inline
 typing-extensions==4.12.2
-    # via typing-inspect
+    # via
+    #   pyright
+    #   typing-inspect
 typing-inspect==0.9.0
     # via juju
 urllib3==2.2.2
