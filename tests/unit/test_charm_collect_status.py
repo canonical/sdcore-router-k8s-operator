@@ -20,7 +20,7 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == BlockedStatus("Multus is not installed or enabled")
 
@@ -47,7 +47,7 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
             leader=True, containers=[container], config={config_param: value}
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == BlockedStatus(
             f"The following configurations are not valid: ['{config_param}']"
@@ -63,7 +63,7 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for workload container to be ready")
 
@@ -78,7 +78,7 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for Multus to be ready")
 
@@ -93,6 +93,6 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == ActiveStatus()
