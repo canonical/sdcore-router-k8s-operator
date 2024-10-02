@@ -16,7 +16,7 @@ rather serve as a building block for higher level modules.
 - **output.tf** - Responsible for integrating the module with other Terraform modules, primarily
   by defining potential integration endpoints (charm integrations), but also by exposing
   the application name.
-- **terraform.tf** - Defines the Terraform provider.
+- **versions.tf** - Defines the Terraform provider.
 
 ## Using sdcore-router-k8s base module in higher level modules
 
@@ -24,10 +24,14 @@ If you want to use `sdcore-router-k8s` base module as part of your Terraform mod
 like shown below:
 
 ```text
+data "juju_model" "my_model" {
+  name = "my_model_name"
+}
+
 module "router" {
   source = "git::https://github.com/canonical/sdcore-router-k8s-operator//terraform"
   
-  model_name = "juju_model_name"
+  model = juju_model.my_model.name
   config = Optional config map
 }
 ```
