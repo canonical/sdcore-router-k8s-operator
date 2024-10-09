@@ -6,9 +6,8 @@ output "app_name" {
   value       = juju_application.router.name
 }
 
-# Required integration endpoints
-
-output "logging_endpoint" {
-  description = "Name of the endpoint used to integrate with the Logging provider."
-  value       = "logging"
+output "requires" {
+  value = {
+    logging = "logging"
+  }
 }
