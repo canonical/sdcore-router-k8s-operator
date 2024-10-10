@@ -16,10 +16,9 @@ from charms.kubernetes_charm_libraries.v0.multus import (
 )
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from lightkube.models.meta_v1 import ObjectMeta
-from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus
+from ops import ActiveStatus, BlockedStatus, CollectStatusEvent, WaitingStatus, main
 from ops.charm import CharmBase
 from ops.framework import EventBase
-from ops.main import main
 
 logger = logging.getLogger(__name__)
 
