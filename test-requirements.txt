@@ -75,6 +75,12 @@ oauthlib==3.2.2
     # via
     #   kubernetes
     #   requests-oauthlib
+ops==2.17.0
+    # via
+    #   -c requirements.txt
+    #   ops-scenario
+ops-scenario==7.0.5
+    # via -r test-requirements.in
 packaging==24.1
     # via
     #   juju
@@ -140,6 +146,8 @@ pyyaml==6.0.2
     #   -r test-requirements.in
     #   juju
     #   kubernetes
+    #   ops
+    #   ops-scenario
     #   pytest-operator
 requests==2.32.3
     # via
@@ -185,5 +193,6 @@ websocket-client==1.8.0
     # via
     #   -c requirements.txt
     #   kubernetes
+    #   ops
 websockets==13.1
     # via juju
