@@ -3,8 +3,7 @@
 
 
 import pytest
-import scenario
-from ops import ActiveStatus, BlockedStatus, WaitingStatus
+from ops import ActiveStatus, BlockedStatus, WaitingStatus, testing
 
 from tests.unit.fixtures import RouterUnitTestFixtures
 
@@ -14,8 +13,8 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
         self,
     ):
         self.mock_k8s_multus.multus_is_available.return_value = False
-        container = scenario.Container(name="router", can_connect=True)
-        state_in = scenario.State(
+        container = testing.Container(name="router", can_connect=True)
+        state_in = testing.State(
             leader=True,
             containers=[container],
         )
@@ -41,11 +40,9 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
         self, config_param, value
     ):
         self.mock_k8s_multus.multus_is_available.return_value = True
-        container = scenario.Container(name="router", can_connect=True)
+        container = testing.Container(name="router", can_connect=True)
 
-        state_in = scenario.State(
-            leader=True, containers=[container], config={config_param: value}
-        )
+        state_in = testing.State(leader=True, containers=[container], config={config_param: value})
 
         state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
@@ -57,8 +54,8 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
         self,
     ):
         self.mock_k8s_multus.multus_is_available.return_value = True
-        container = scenario.Container(name="router", can_connect=False)
-        state_in = scenario.State(
+        container = testing.Container(name="router", can_connect=False)
+        state_in = testing.State(
             leader=True,
             containers=[container],
         )
@@ -72,8 +69,8 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
     ):
         self.mock_k8s_multus.multus_is_available.return_value = True
         self.mock_k8s_multus.is_ready.return_value = False
-        container = scenario.Container(name="router", can_connect=True)
-        state_in = scenario.State(
+        container = testing.Container(name="router", can_connect=True)
+        state_in = testing.State(
             leader=True,
             containers=[container],
         )
@@ -87,8 +84,8 @@ class TestCharmCollectUnitStatus(RouterUnitTestFixtures):
     ):
         self.mock_k8s_multus.multus_is_available.return_value = True
         self.mock_k8s_multus.is_ready.return_value = True
-        container = scenario.Container(name="router", can_connect=True)
-        state_in = scenario.State(
+        container = testing.Container(name="router", can_connect=True)
+        state_in = testing.State(
             leader=True,
             containers=[container],
         )
