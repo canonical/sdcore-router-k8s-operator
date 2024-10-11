@@ -3,7 +3,7 @@
 
 
 import pytest
-import scenario
+from ops import testing
 
 from tests.unit.fixtures import RouterUnitTestFixtures
 
@@ -14,23 +14,23 @@ class TestCharmConfigure(RouterUnitTestFixtures):
     ):
         self.mock_k8s_multus.multus_is_available.return_value = True
         self.mock_k8s_multus.is_ready.return_value = True
-        container = scenario.Container(
+        container = testing.Container(
             name="router",
             can_connect=True,
             execs={
-                scenario.Exec(
+                testing.Exec(
                     command_prefix=["iptables-legacy"],
                     return_code=0,
                     stdout="",
                 ),
-                scenario.Exec(
+                testing.Exec(
                     command_prefix=["sysctl"],
                     return_code=0,
                     stdout="net.ipv4.ip_forward = 1",
                 ),
             },
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             containers={container},
         )
@@ -57,16 +57,16 @@ class TestCharmConfigure(RouterUnitTestFixtures):
     def test_error_when_setting_up_ip_forwarding_when_configure_then_error_raised(self, caplog):
         self.mock_k8s_multus.multus_is_available.return_value = True
         self.mock_k8s_multus.is_ready.return_value = True
-        container = scenario.Container(
+        container = testing.Container(
             name="router",
             can_connect=True,
             execs={
-                scenario.Exec(
+                testing.Exec(
                     command_prefix=["iptables-legacy"],
                     return_code=0,
                     stdout="",
                 ),
-                scenario.Exec(
+                testing.Exec(
                     command_prefix=["sysctl"],
                     return_code=0,
                     stdout="",
@@ -74,7 +74,7 @@ class TestCharmConfigure(RouterUnitTestFixtures):
                 ),
             },
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             containers=[container],
         )
