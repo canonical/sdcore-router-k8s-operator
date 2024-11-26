@@ -5,7 +5,10 @@
 
 # Python
 **/venv/**
+.venv/
 *.pyc
+build/
+*.egg-info/
 
 # Charmcraft
 *.charm
