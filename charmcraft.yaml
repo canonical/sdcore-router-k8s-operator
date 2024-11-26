@@ -13,9 +13,17 @@ links:
 
 parts:
   charm:
-    build-packages:
-      - cargo
-      - rustc
+    source: .
+    plugin: charm
+    charm-requirements:
+      - requirements.txt
+    build-snaps:
+      - astral-uv
+      - rustup
+    override-build: |
+      rustup default stable
+      uv export --frozen --no-dev -o requirements.txt
+      craftctl default
 
 containers:
   router:
