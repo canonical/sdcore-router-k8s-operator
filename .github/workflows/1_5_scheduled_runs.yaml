@@ -36,7 +36,7 @@ jobs:
       - lint-report
       - static-analysis
       - unit-tests-with-coverage
-    uses: canonical/sdcore-github-workflows/.github/workflows/build.yaml@v2.3.2
+    uses: canonical/sdcore-github-workflows/.github/workflows/build.yaml@v2.3.3
     with:
       branch-name: "v1.5"
     secrets: inherit
@@ -44,7 +44,7 @@ jobs:
   integration-test:
     needs:
       - build
-    uses: canonical/sdcore-github-workflows/.github/workflows/integration-test.yaml@v2.3.2
+    uses: canonical/sdcore-github-workflows/.github/workflows/integration-test.yaml@v2.3.3
     with:
       branch-name: "v1.5"
       enable-metallb: true
